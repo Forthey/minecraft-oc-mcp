@@ -1,0 +1,236 @@
+[
+  {
+    "id": "minecraft:stone",
+    "name": "Stone",
+    "mod": "minecraft",
+    "description": "Natural stone block.",
+    "block": "minecraft:stone"
+  },
+  {
+    "id": "minecraft:grass",
+    "name": "Grass Block",
+    "mod": "minecraft",
+    "description": "Top layer of the flat world floor.",
+    "block": "minecraft:grass"
+  },
+  {
+    "id": "minecraft:dirt",
+    "name": "Dirt",
+    "mod": "minecraft",
+    "description": "Dirt block.",
+    "block": "minecraft:dirt"
+  },
+  {
+    "id": "minecraft:bedrock",
+    "name": "Bedrock",
+    "mod": "minecraft",
+    "description": "Unbreakable bottom layer.",
+    "block": "minecraft:bedrock"
+  },
+  {
+    "id": "minecraft:cobblestone",
+    "name": "Cobblestone",
+    "mod": "minecraft",
+    "description": "Basic building block.",
+    "block": "minecraft:cobblestone"
+  },
+  {
+    "id": "minecraft:iron_ore",
+    "name": "Iron Ore",
+    "mod": "minecraft",
+    "description": "Smelts into an iron ingot.",
+    "block": "minecraft:iron_ore"
+  },
+  {
+    "id": "minecraft:glass",
+    "name": "Glass",
+    "mod": "minecraft",
+    "description": "Transparent block.",
+    "block": "minecraft:glass"
+  },
+  {
+    "id": "minecraft:planks",
+    "name": "Oak Wood Planks",
+    "mod": "minecraft",
+    "description": "Crafted from oak logs.",
+    "block": "minecraft:planks"
+  },
+  {
+    "id": "minecraft:planks:1",
+    "name": "Spruce Wood Planks",
+    "mod": "minecraft",
+    "description": "Crafted from spruce logs.",
+    "block": "minecraft:planks:1"
+  },
+  {
+    "id": "minecraft:planks:2",
+    "name": "Birch Wood Planks",
+    "mod": "minecraft",
+    "description": "Crafted from birch logs.",
+    "block": "minecraft:planks:2"
+  },
+  {
+    "id": "minecraft:planks:3",
+    "name": "Jungle Wood Planks",
+    "mod": "minecraft",
+    "description": "Crafted from jungle logs.",
+    "block": "minecraft:planks:3"
+  },
+  {
+    "id": "minecraft:log",
+    "name": "Oak Wood",
+    "mod": "minecraft",
+    "description": "Oak log. Meta bits 2 and 3 store the axis.",
+    "block": "minecraft:log",
+    "meta_mask": 3
+  },
+  {
+    "id": "minecraft:log:1",
+    "name": "Spruce Wood",
+    "mod": "minecraft",
+    "description": "Spruce log.",
+    "block": "minecraft:log:1",
+    "meta_mask": 3
+  },
+  {
+    "id": "minecraft:log:2",
+    "name": "Birch Wood",
+    "mod": "minecraft",
+    "description": "Birch log.",
+    "block": "minecraft:log:2",
+    "meta_mask": 3
+  },
+  {
+    "id": "minecraft:log:3",
+    "name": "Jungle Wood",
+    "mod": "minecraft",
+    "description": "Jungle log.",
+    "block": "minecraft:log:3",
+    "meta_mask": 3
+  },
+  {
+    "id": "minecraft:chest",
+    "name": "Chest",
+    "mod": "minecraft",
+    "description": "Storage block with 27 slots. Turns to face away from neighbours when placed.",
+    "block": "minecraft:chest",
+    "meta_mask": 0,
+    "container_slots": 27
+  },
+  {
+    "id": "minecraft:crafting_table",
+    "name": "Crafting Table",
+    "mod": "minecraft",
+    "description": "3x3 crafting grid.",
+    "block": "minecraft:crafting_table"
+  },
+  {
+    "id": "minecraft:furnace",
+    "name": "Furnace",
+    "mod": "minecraft",
+    "description": "Smelts items. Slots: 0 input, 1 fuel, 2 output.",
+    "block": "minecraft:furnace",
+    "meta_mask": 0,
+    "container_slots": 3
+  },
+  {
+    "id": "minecraft:stick",
+    "name": "Stick",
+    "mod": "minecraft",
+    "description": "Crafting component."
+  },
+  {
+    "id": "minecraft:iron_ingot",
+    "name": "Iron Ingot",
+    "mod": "minecraft",
+    "description": "Smelted iron."
+  },
+  {
+    "id": "minecraft:redstone",
+    "name": "Redstone",
+    "mod": "minecraft",
+    "description": "Redstone dust."
+  },
+  {
+    "id": "minecraft:flint",
+    "name": "Flint",
+    "mod": "minecraft",
+    "description": "Dropped by gravel."
+  },
+  {
+    "id": "minecraft:coal",
+    "name": "Coal",
+    "mod": "minecraft",
+    "description": "Fuel."
+  },
+  {
+    "id": "IC2:blockGenerator",
+    "name": "Generator",
+    "mod": "IC2",
+    "description": "Burns fuel and outputs EU to adjacent machines and cables. Slots: 0 fuel, 1 battery.",
+    "block": "IC2:blockGenerator",
+    "container_slots": 2
+  },
+  {
+    "id": "IC2:blockGenerator:5",
+    "name": "Nuclear Reactor",
+    "mod": "IC2",
+    "description": "Nuclear reactor core. Reactor chambers placed on its faces add slots.",
+    "block": "IC2:blockGenerator:5",
+    "container_slots": 54
+  },
+  {
+    "id": "IC2:blockMachine",
+    "name": "Basic Machine Casing",
+    "mod": "IC2",
+    "description": "Base component of IC2 machines.",
+    "block": "IC2:blockMachine"
+  },
+  {
+    "id": "IC2:blockMachine:1",
+    "name": "Iron Furnace",
+    "mod": "IC2",
+    "description": "Faster fuel furnace, component of the Generator.",
+    "block": "IC2:blockMachine:1",
+    "container_slots": 3
+  },
+  {
+    "id": "IC2:blockMachine:3",
+    "name": "Macerator",
+    "mod": "IC2",
+    "description": "Grinds ores into dust using EU. Slots: 0 input, 1 battery, 2 output.",
+    "block": "IC2:blockMachine:3",
+    "container_slots": 3
+  },
+  {
+    "id": "IC2:blockReactorChamber",
+    "name": "Reactor Chamber",
+    "mod": "IC2",
+    "description": "Extends a nuclear reactor when placed directly on one of its faces.",
+    "block": "IC2:blockReactorChamber"
+  },
+  {
+    "id": "IC2:itemPlates:4",
+    "name": "Iron Plate",
+    "mod": "IC2",
+    "description": "Made from an iron ingot with a forge hammer or metal former."
+  },
+  {
+    "id": "IC2:itemPlates:6",
+    "name": "Lead Plate",
+    "mod": "IC2",
+    "description": "Made from a lead ingot with a forge hammer or metal former."
+  },
+  {
+    "id": "IC2:itemPartCircuit",
+    "name": "Electronic Circuit",
+    "mod": "IC2",
+    "description": "Basic circuit for IC2 machines."
+  },
+  {
+    "id": "IC2:itemBatRE",
+    "name": "RE-Battery",
+    "mod": "IC2",
+    "description": "Rechargeable battery, component of the Generator."
+  }
+]

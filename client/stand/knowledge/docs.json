@@ -1,0 +1,14 @@
+[
+  {"doc_id": "ic2-generator", "title": "Generator", "mod": "IC2", "version": "IC2 2.2.827-experimental",
+   "text": "The Generator burns solid fuel such as coal and produces 10 EU/t. It outputs energy to every adjacent block that accepts EU, so a machine placed directly next to a generator (touching one of its faces) is powered without cables. Slot 0 takes fuel, slot 1 charges a battery. Recipe: RE-Battery on top, three iron plates in the middle row, Iron Furnace at the bottom."},
+  {"doc_id": "ic2-macerator", "title": "Macerator", "mod": "IC2", "version": "IC2 2.2.827-experimental",
+   "text": "The Macerator grinds one ore into two dusts using 2 EU/t. It needs a power source: place it directly next to a Generator or connect them with a cable. Slot 0 is the input, slot 1 takes a battery, slot 2 is the output. Recipe: three flint on top, cobblestone, Basic Machine Casing, cobblestone in the middle, an Electronic Circuit at the bottom."},
+  {"doc_id": "ic2-machine-casing", "title": "Basic Machine Casing", "mod": "IC2", "version": "IC2 2.2.827-experimental",
+   "text": "The Basic Machine Casing is made from eight iron plates in a ring with an empty centre. Most IC2 machines, including the Macerator and the Reactor Chamber, need one."},
+  {"doc_id": "ic2-reactor-structure", "title": "Nuclear Reactor structure", "mod": "IC2", "version": "IC2 2.2.827-experimental",
+   "text": "A Nuclear Reactor is a single block. Reactor Chambers extend it by one column of component slots each, up to six chambers. A chamber only counts when it is placed directly on one of the six faces of the reactor block (above, below, north, south, east, west). Chambers must not touch each other only diagonally and must not be separated from the reactor by any other block."},
+  {"doc_id": "ic2-reactor-safety", "title": "Nuclear Reactor safety", "mod": "IC2", "version": "IC2 2.2.827-experimental",
+   "text": "A reactor without cooling components overheats and explodes once fuel is inserted and a redstone signal activates it. Build the structure first, fill cooling components second, insert fuel last, and keep a way to cut the redstone signal at once."},
+  {"doc_id": "mc-planks", "title": "Wooden planks", "mod": "minecraft", "version": "Minecraft 1.7.10",
+   "text": "One log of any wood type crafts into four planks of the same wood type. Planks craft into sticks, crafting tables and chests."}
+]
