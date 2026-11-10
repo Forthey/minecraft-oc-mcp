@@ -4,6 +4,8 @@
 
 Дизайн: [docs/superpowers/specs/2026-11-10-oc-agent-skills-design.md](docs/superpowers/specs/2026-11-10-oc-agent-skills-design.md)
 
+MCP-контракт робота для команды: [docs/mcp-contract.md](docs/mcp-contract.md). Он синхронизирован с `skills/references/tool-contract.md`, менять оба файла вместе.
+
 ## Структура
 
 ```

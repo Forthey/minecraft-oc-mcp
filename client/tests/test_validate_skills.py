@@ -354,3 +354,28 @@ def test_orchestrator_handles_failed_and_emergency():
 
 def test_verify_uses_valid_status():
     assert "status `FAIL`" not in (ROOT / "skills/oc-verify/SKILL.md").read_text()
+
+
+# Team contract doc stays in sync with skills/references/tool-contract.md
+
+TEAM_DOC = ROOT / "docs/mcp-contract.md"
+
+
+def team_doc_tools(text):
+    import re
+    names = set()
+    for line in text.splitlines():
+        if line.startswith("**`"):
+            names.update(re.findall(r"\*\*`([a-z_]+)\(", line))
+    return names
+
+
+def test_team_contract_doc_in_sync():
+    text = TEAM_DOC.read_text()
+    assert team_doc_tools(text) == contract_tools(CONTRACT)
+    codes = section(text, "## Коды ошибок")
+    assert {c for c in ALL_ERROR_CODES if f"| `{c}` |" in codes} == ALL_ERROR_CODES
+
+
+def test_tool_contract_points_to_team_doc():
+    assert "docs/mcp-contract.md" in CONTRACT.read_text()

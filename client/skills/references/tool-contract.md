@@ -1,6 +1,8 @@
 # Robot MCP tool contract (draft)
 
-This file is the single source of tool names. If the real MCP server differs, change only this file.
+This file is the single source of tool names for the skills. If the real MCP server differs, change this file.
+
+The team keeps a Russian copy with examples and open questions in `docs/mcp-contract.md` (repository root, not installed with the skills). When you change a tool, a parameter or an error code here, make the same change there in the same edit, then run the tests: `test_team_contract_doc_in_sync` fails if the two files list different tools or error codes.
 
 Items marked `(assumption, confirm with team)` are guesses about what the robot side can do. Treat them as available, but if a call returns an error that says the tool does not exist, report it as `BLOCKED` with that fact instead of working around it.
 
