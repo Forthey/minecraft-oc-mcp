@@ -71,3 +71,18 @@ def test_snapshot_reads_placed_blocks(rcon):
         rcon.command(f"setblock {x} {y} {z} {name} {meta} replace")
     snap = capture(rcon, cfg.world_dir, box)
     assert snap.changed() == placed
+
+
+def test_rcon_world_backend(rcon):
+    from stand.world.backend import RconWorld
+
+    w = RconWorld(rcon)
+    p = (110, 64, 95)
+    w.set_block(p, ("minecraft:planks", 2))
+    assert w.test_block(p, ("minecraft:planks", 2))
+    assert not w.test_block(p, ("minecraft:planks", 1))
+    assert w.test_block(p, ("minecraft:planks", 1), any_meta=True)
+    # Повторная установка того же блока не ошибка.
+    w.set_block(p, ("minecraft:planks", 2))
+    w.set_block(p, ("minecraft:air", 0))
+    assert w.test_block(p, ("minecraft:air", 0))
