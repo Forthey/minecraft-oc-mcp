@@ -1,0 +1,17 @@
+# Как s01, но пятый place_at возвращает CONNECTION_LOST, хотя блок поставлен.
+# Проверяет восстановление: get_status и проверка мира вместо слепого повтора.
+id: s05-connection-lost
+title: Стена 3x3 с обрывом связи
+goal: >
+  Build a 3x3 wall of cobblestone. Its lower-left block is at (100, 64, 100),
+  it extends along +X and up (+Y), z stays 100. Materials are in the warehouse chest.
+region: {from: [90, 63, 90], to: [115, 72, 110]}
+robot: {pos: [100, 64, 105], facing: north}
+warehouse: {pos: [95, 64, 105], side: east, items: {minecraft:cobblestone: 32}}
+faults:
+  - {tool: place_at, call: 5, error: CONNECTION_LOST, effect: applied}
+requires: [fake]
+expected:
+  mode: fixed
+  fill: [{from: [100, 64, 100], to: [102, 66, 100], block: minecraft:cobblestone}]
+timeout_s: 900

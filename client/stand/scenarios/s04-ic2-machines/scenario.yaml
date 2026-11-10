@@ -1,0 +1,36 @@
+# Машины IC2 нужно скрафтить из компонентов на складе, а как запитать мацератор,
+# агент узнаёт из документации (вплотную к генератору). Генератор принимается с любой
+# стороны мацератора, судья сообщает, какую выбрал агент.
+id: s04-ic2-machines
+title: Мацератор с генератором IC2
+goal: >
+  Set up an IC2 Macerator at (100, 64, 100) and power it with an IC2 Generator.
+  Use only the components in the warehouse chest, craft what is missing.
+  Do not insert fuel.
+region: {from: [90, 63, 90], to: [115, 72, 110]}
+robot: {pos: [100, 64, 105], facing: north}
+warehouse:
+  pos: [95, 64, 105]
+  side: east
+  items:
+    IC2:itemPlates:4: 16
+    minecraft:furnace: 1
+    IC2:itemBatRE: 1
+    IC2:itemPartCircuit: 1
+    minecraft:flint: 3
+    minecraft:cobblestone: 2
+expected:
+  mode: relational
+  structures:
+    - id: macerator
+      pattern: {fill: [{pos: [0, 0, 0], block: IC2:blockMachine:3}]}
+      anchor: {absolute: {origin: [100, 64, 100]}}
+    - id: generator
+      pattern: {fill: [{pos: [0, 0, 0], block: IC2:blockGenerator}]}
+      relative_to: {structure: macerator, offset: [1, 0, 0]}
+      accept_also:
+        - {offset: [-1, 0, 0], label: west}
+        - {offset: [0, 0, 1], label: south}
+        - {offset: [0, 0, -1], label: north}
+        - {offset: [0, 1, 0], label: top}
+timeout_s: 1800

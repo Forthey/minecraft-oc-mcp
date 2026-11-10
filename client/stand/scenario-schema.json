@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Stand scenario",
+  "type": "object",
+  "required": ["id", "title", "goal", "region", "robot", "warehouse", "expected", "timeout_s"],
+  "additionalProperties": false,
+  "$defs": {
+    "pos": {"type": "array", "items": {"type": "integer"}, "minItems": 3, "maxItems": 3},
+    "block": {"type": "string", "pattern": "^[A-Za-z0-9_]+:[A-Za-z0-9_.]+(:[0-9]+)?$"},
+    "box": {
+      "type": "object", "required": ["from", "to"], "additionalProperties": false,
+      "properties": {"from": {"$ref": "#/$defs/pos"}, "to": {"$ref": "#/$defs/pos"}}
+    },
+    "fill_item": {
+      "oneOf": [
+        {"type": "object", "required": ["pos", "block"], "additionalProperties": false,
+         "properties": {"pos": {"$ref": "#/$defs/pos"}, "block": {"$ref": "#/$defs/block"}, "removable": {"type": "boolean"}}},
+        {"type": "object", "required": ["from", "to", "block"], "additionalProperties": false,
+         "properties": {"from": {"$ref": "#/$defs/pos"}, "to": {"$ref": "#/$defs/pos"}, "block": {"$ref": "#/$defs/block"}, "removable": {"type": "boolean"}}}
+      ]
+    },
+    "fill": {"type": "array", "items": {"$ref": "#/$defs/fill_item"}},
+    "facing": {"enum": ["north", "south", "east", "west"]},
+    "side": {"enum": ["north", "south", "east", "west", "up", "down"]},
+    "structure": {
+      "type": "object",
+      "required": ["id", "pattern"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "pattern": {
+          "oneOf": [
+            {"type": "object", "required": ["fill"], "additionalProperties": false,
+             "properties": {"fill": {"$ref": "#/$defs/fill"}}},
+            {"type": "object", "required": ["same_as"], "additionalProperties": false,
+             "properties": {"same_as": {"type": "string"}}}
+          ]
+        },
+        "rotations": {"type": "array", "items": {"enum": [0, 90, 180, 270]}, "minItems": 1},
+        "anchor": {
+          "type": "object", "minProperties": 1, "maxProperties": 1, "additionalProperties": false,
+          "properties": {
+            "in_front_of_robot": {
+              "type": "object", "required": ["min", "max"], "additionalProperties": false,
+              "properties": {"min": {"type": "integer", "minimum": 0}, "max": {"type": "integer", "minimum": 0},
+                             "lateral": {"type": "integer", "minimum": 0}}
+            },
+            "near_block": {
+              "type": "object", "required": ["pos", "side"], "additionalProperties": false,
+              "properties": {"pos": {"$ref": "#/$defs/pos"}, "side": {"$ref": "#/$defs/side"},
+                             "max_gap": {"type": "integer", "minimum": 0}}
+            },
+            "absolute": {
+              "type": "object", "required": ["origin"], "additionalProperties": false,
+              "properties": {"origin": {"$ref": "#/$defs/pos"}, "rotation": {"enum": [0, 90, 180, 270]}}
+            }
+          }
+        },
+        "relative_to": {
+          "type": "object", "required": ["structure", "offset"], "additionalProperties": false,
+          "properties": {"structure": {"type": "string"}, "offset": {"$ref": "#/$defs/pos"}}
+        },
+        "accept_also": {
+          "type": "array",
+          "items": {"type": "object", "required": ["offset", "label"], "additionalProperties": false,
+                    "properties": {"offset": {"$ref": "#/$defs/pos"}, "label": {"type": "string"}}}
+        }
+      },
+      "oneOf": [
+        {"required": ["anchor"], "not": {"required": ["relative_to"]}},
+        {"required": ["relative_to"], "not": {"required": ["anchor"]}}
+      ]
+    }
+  },
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+    "title": {"type": "string"},
+    "goal": {"type": "string", "minLength": 1},
+    "region": {"$ref": "#/$defs/box"},
+    "robot": {
+      "type": "object", "required": ["pos", "facing"], "additionalProperties": false,
+      "properties": {
+        "pos": {"$ref": "#/$defs/pos"},
+        "facing": {"$ref": "#/$defs/facing"},
+        "energy": {"type": "number", "minimum": 0, "maximum": 1},
+        "inventory": {"type": "array", "items": {
+          "type": "object", "required": ["item", "count"], "additionalProperties": false,
+          "properties": {"item": {"$ref": "#/$defs/block"}, "count": {"type": "integer", "minimum": 1}}}}
+      }
+    },
+    "warehouse": {
+      "type": "object", "required": ["pos", "side", "items"], "additionalProperties": false,
+      "properties": {
+        "pos": {"$ref": "#/$defs/pos"},
+        "side": {"$ref": "#/$defs/side"},
+        "items": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}}
+      }
+    },
+    "setup_blocks": {"$ref": "#/$defs/fill"},
+    "knowledge": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"items": {"type": "array"}, "recipes": {"type": "array"}, "docs": {"type": "array"}}
+    },
+    "profile": {"enum": ["full", "no-vision", "no-docs"]},
+    "faults": {"type": "array", "items": {
+      "type": "object", "required": ["tool", "call", "error", "effect"], "additionalProperties": false,
+      "properties": {
+        "tool": {"type": "string"},
+        "call": {"type": "integer", "minimum": 1},
+        "error": {"enum": ["BLOCKED", "NO_PATH", "OUT_OF_RANGE", "NO_ITEM", "INVENTORY_FULL", "NO_ENERGY",
+                            "TOOL_BROKEN", "CANT_PLACE", "UNKNOWN_ITEM", "NO_RECIPE", "TIMEOUT", "CONNECTION_LOST"]},
+        "effect": {"enum": ["applied", "skipped"]}
+      }}},
+    "requires": {"type": "array", "items": {"enum": ["fake"]}},
+    "expected": {
+      "oneOf": [
+        {"type": "object", "required": ["mode", "fill"], "additionalProperties": false,
+         "properties": {"mode": {"const": "fixed"}, "fill": {"$ref": "#/$defs/fill"}}},
+        {"type": "object", "required": ["mode", "structures"], "additionalProperties": false,
+         "properties": {"mode": {"const": "relational"},
+                        "structures": {"type": "array", "items": {"$ref": "#/$defs/structure"}, "minItems": 1}}}
+      ]
+    },
+    "scoring": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"pass_accuracy": {"type": "number", "minimum": 0, "maximum": 1},
+                     "max_extra": {"type": "integer", "minimum": 0}}
+    },
+    "timeout_s": {"type": "integer", "minimum": 1}
+  }
+}

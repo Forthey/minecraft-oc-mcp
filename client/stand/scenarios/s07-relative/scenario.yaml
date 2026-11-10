@@ -1,0 +1,23 @@
+# Относительные указания: "перед собой" и "на 5 блоков западнее". Судья ищет обе стены
+# по шаблону и сообщает, как агент понял "западнее": сдвиг на 5 или зазор в 5 блоков.
+id: s07-relative
+title: Две стены по относительным указаниям
+goal: >
+  Build a 3x3 cobblestone wall in front of you, facing you.
+  Then build the same wall 5 blocks to the west of it.
+region: {from: [85, 63, 90], to: [115, 72, 110]}
+robot: {pos: [100, 64, 105], facing: north}
+warehouse: {pos: [108, 64, 105], side: west, items: {minecraft:cobblestone: 32}}
+expected:
+  mode: relational
+  structures:
+    - id: A
+      pattern: {fill: [{from: [0, 0, 0], to: [2, 2, 0], block: minecraft:cobblestone}]}
+      rotations: [0, 90, 180, 270]
+      anchor:
+        in_front_of_robot: {min: 1, max: 4, lateral: 2}
+    - id: B
+      pattern: {same_as: A}
+      relative_to: {structure: A, offset: [-5, 0, 0]}
+      accept_also: [{offset: [-8, 0, 0], label: "gap of 5"}]
+timeout_s: 1200
