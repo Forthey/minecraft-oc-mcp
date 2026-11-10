@@ -18,6 +18,9 @@ class WorldBackend(Protocol):
     def set_block(self, p: Pos, b: Block) -> None:
         """Ставит блок, воздух означает сломать."""
 
+    def set_block_nbt(self, p: Pos, b: Block, nbt: str) -> None:
+        """Ставит блок с NBT-тегом tile entity."""
+
     def test_block(self, p: Pos, b: Block, any_meta: bool = False) -> bool:
         """Стоит ли в позиции блок b (при any_meta сравнивается только имя)."""
 
@@ -36,6 +39,13 @@ class RconWorld:
         if "placed" not in low:
             raise WorldError(f"setblock {p} {b}: {resp}")
 
+    def set_block_nbt(self, p: Pos, b: Block, nbt: str) -> None:
+        """Ставит блок с NBT-тегом tile entity, например содержимым сундука."""
+        x, y, z = p
+        resp = self.rcon.command(f"setblock {x} {y} {z} {b[0]} {b[1]} replace {nbt}")
+        if "placed" not in resp.lower():
+            raise WorldError(f"setblock {p} {b} {nbt}: {resp}")
+
     def test_block(self, p: Pos, b: Block, any_meta: bool = False) -> bool:
         x, y, z = p
         meta = -1 if any_meta else b[1]
@@ -48,6 +58,8 @@ class MemoryWorld:
 
     def __init__(self, blocks: dict[Pos, Block] | None = None):
         self.blocks: dict[Pos, Block] = dict(blocks or {})
+        # Записи set_block_nbt по порядку: (позиция, блок, тег). Нужны тестам.
+        self.nbt_log: list[tuple[Pos, Block, str]] = []
 
     def get(self, p: Pos) -> Block:
         return self.blocks.get(p, baseline_block(p[1]))
@@ -57,6 +69,10 @@ class MemoryWorld:
             self.blocks.pop(p, None)
         else:
             self.blocks[p] = b
+
+    def set_block_nbt(self, p: Pos, b: Block, nbt: str) -> None:
+        self.set_block(p, b)
+        self.nbt_log.append((p, b, nbt))
 
     def test_block(self, p: Pos, b: Block, any_meta: bool = False) -> bool:
         actual = self.get(p)

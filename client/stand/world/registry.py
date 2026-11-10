@@ -24,3 +24,10 @@ def load_block_registry(level_dat: Path) -> dict[int, str]:
     if 0 not in out:
         out[0] = "minecraft:air"
     return out
+
+
+def load_item_ids(level_dat: Path) -> dict[str, int]:
+    """Числовые id предметов по имени (записи с префиксом \\x02). Нужны для NBT сундука."""
+    root = read_nbt(level_dat.read_bytes())
+    items = root.get("FML", {}).get("ItemData", [])
+    return {e["K"][1:]: int(e["V"]) for e in items if e.get("K", "").startswith("\x02")}
