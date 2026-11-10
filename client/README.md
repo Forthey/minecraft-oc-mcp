@@ -6,6 +6,8 @@
 
 MCP-контракт робота для команды: [docs/mcp-contract.md](docs/mcp-contract.md). Он синхронизирован с `skills/references/tool-contract.md`, менять оба файла вместе.
 
+Сценарии e2e-стенда и что из них показывать на демо: [docs/stand-scenarios.md](docs/stand-scenarios.md).
+
 ## Структура
 
 ```

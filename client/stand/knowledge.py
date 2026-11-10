@@ -112,7 +112,8 @@ class Knowledge:
                 return item_id
         return None
 
-    def _mask(self, block_name: str) -> int:
+    def meta_mask(self, block_name: str) -> int:
+        """Значимые биты meta блока (15, если блок неизвестен)."""
         entries = self._by_block.get(block_name)
         return entries[0][2] if entries else 15
 
@@ -120,7 +121,7 @@ class Knowledge:
         """Совпадают ли блоки с учётом незначимых битов meta."""
         if expected[0] != actual[0]:
             return False
-        mask = self._mask(expected[0])
+        mask = self.meta_mask(expected[0])
         return expected[1] & mask == actual[1] & mask
 
     def container_slots(self, item_id: str) -> int:

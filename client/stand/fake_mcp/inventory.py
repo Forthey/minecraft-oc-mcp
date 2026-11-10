@@ -74,3 +74,48 @@ class Inventory:
             "total": self.size,
             "top": [{"item": i, "count": c} for i, c in totals[:5]],
         }
+
+
+class Container(Inventory):
+    """Сундук или машина. Кроме общих операций умеет работать с конкретным слотом."""
+
+    def __init__(self, slots: int, stack: int = 64):
+        super().__init__(slots, stack)
+
+    def has_slot(self, slot: int) -> bool:
+        return 0 <= slot < self.size
+
+    def slot_space(self, slot: int, item: str) -> int:
+        """Сколько item поместится в слот."""
+        s = self.slots[slot]
+        if s is None:
+            return self.stack
+        return self.stack - s[1] if s[0] == item else 0
+
+    def slot_count(self, slot: int, item: str) -> int:
+        s = self.slots[slot]
+        return s[1] if s and s[0] == item else 0
+
+    def put_slot(self, slot: int, item: str, count: int) -> int:
+        """Кладёт в слот и возвращает, сколько не поместилось."""
+        n = min(count, self.slot_space(slot, item))
+        if n:
+            s = self.slots[slot]
+            if s is None:
+                self.slots[slot] = [item, n]
+            else:
+                s[1] += n
+        return count - n
+
+    def take_slot(self, slot: int, item: str, count: int) -> int:
+        """Забирает из слота до count штук и возвращает, сколько забрано."""
+        n = min(count, self.slot_count(slot, item))
+        if n:
+            s = self.slots[slot]
+            s[1] -= n
+            if s[1] == 0:
+                self.slots[slot] = None
+        return n
+
+    def nonempty_view(self) -> list[dict]:
+        return [{"slot": i, "item": s[0], "count": s[1]} for i, s in enumerate(self.slots) if s]
