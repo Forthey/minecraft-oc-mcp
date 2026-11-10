@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OC robot build spec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "goal",
+    "origin",
+    "stages",
+    "safety",
+    "final_acceptance",
+    "emergency_off",
+    "sources"
+  ],
+  "properties": {
+    "goal": {
+      "type": "string",
+      "minLength": 1
+    },
+    "origin": {
+      "$ref": "#/$defs/pos"
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/stage"
+      }
+    },
+    "safety": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "final_acceptance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/check"
+      }
+    },
+    "emergency_off": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "if": {
+    "anyOf": [
+      {
+        "properties": {
+          "stages": {
+            "contains": {
+              "properties": {
+                "gate": {
+                  "enum": [
+                    "insert_fuel",
+                    "activate_machine"
+                  ]
+                }
+              },
+              "required": [
+                "gate"
+              ]
+            }
+          }
+        },
+        "required": [
+          "stages"
+        ]
+      },
+      {
+        "properties": {
+          "stages": {
+            "contains": {
+              "properties": {
+                "acceptance": {
+                  "properties": {
+                    "functional": {
+                      "contains": {
+                        "properties": {
+                          "gate": {
+                            "enum": [
+                              "insert_fuel",
+                              "activate_machine"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "gate"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "stages"
+        ]
+      },
+      {
+        "properties": {
+          "final_acceptance": {
+            "contains": {
+              "properties": {
+                "gate": {
+                  "enum": [
+                    "insert_fuel",
+                    "activate_machine"
+                  ]
+                }
+              },
+              "required": [
+                "gate"
+              ]
+            }
+          }
+        },
+        "required": [
+          "final_acceptance"
+        ]
+      }
+    ]
+  },
+  "then": {
+    "properties": {
+      "emergency_off": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "pos": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "description",
+        "actions",
+        "expect"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expect": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gate": {
+          "enum": [
+            null,
+            "insert_fuel",
+            "activate_machine",
+            "dig_near_structure"
+          ]
+        }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "blocks",
+        "slots",
+        "acceptance",
+        "gate"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pos",
+              "item"
+            ],
+            "properties": {
+              "pos": {
+                "$ref": "#/$defs/pos"
+              },
+              "item": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target",
+              "slot",
+              "item",
+              "count"
+            ],
+            "properties": {
+              "target": {
+                "$ref": "#/$defs/pos"
+              },
+              "slot": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "item": {
+                "type": "string",
+                "minLength": 1
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "acceptance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "structural",
+            "functional"
+          ],
+          "properties": {
+            "structural": {
+              "type": "boolean"
+            },
+            "functional": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/check"
+              }
+            }
+          }
+        },
+        "gate": {
+          "enum": [
+            null,
+            "insert_fuel",
+            "activate_machine",
+            "dig_near_structure"
+          ]
+        }
+      }
+    }
+  }
+}

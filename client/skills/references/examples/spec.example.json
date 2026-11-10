@@ -1,0 +1,159 @@
+{
+  "goal": "IC2 nuclear reactor with one chamber and passive cooling",
+  "origin": [
+    100,
+    64,
+    100
+  ],
+  "stages": [
+    {
+      "id": "1-structure",
+      "blocks": [
+        {
+          "pos": [
+            0,
+            0,
+            0
+          ],
+          "item": "IC2:blockGenerator:5"
+        },
+        {
+          "pos": [
+            1,
+            0,
+            0
+          ],
+          "item": "IC2:blockReactorChamber"
+        },
+        {
+          "pos": [
+            -1,
+            0,
+            0
+          ],
+          "item": "IC2:blockCable:0"
+        }
+      ],
+      "slots": [],
+      "acceptance": {
+        "structural": true,
+        "functional": []
+      },
+      "gate": null
+    },
+    {
+      "id": "2-cooling",
+      "blocks": [],
+      "slots": [
+        {
+          "target": [
+            0,
+            0,
+            0
+          ],
+          "slot": 0,
+          "item": "IC2:reactorVent",
+          "count": 1
+        },
+        {
+          "target": [
+            0,
+            0,
+            0
+          ],
+          "slot": 2,
+          "item": "IC2:reactorVent",
+          "count": 1
+        }
+      ],
+      "acceptance": {
+        "structural": false,
+        "functional": [
+          {
+            "description": "cooling components are in the planned slots",
+            "actions": [
+              "inspect_container on the reactor"
+            ],
+            "expect": "slots 0 and 2 hold IC2:reactorVent"
+          }
+        ]
+      },
+      "gate": null
+    },
+    {
+      "id": "3-fuel",
+      "blocks": [],
+      "slots": [
+        {
+          "target": [
+            0,
+            0,
+            0
+          ],
+          "slot": 1,
+          "item": "IC2:reactorUraniumSimple",
+          "count": 1
+        }
+      ],
+      "acceptance": {
+        "structural": false,
+        "functional": [
+          {
+            "description": "fuel rod is in slot 1",
+            "actions": [
+              "inspect_container on the reactor"
+            ],
+            "expect": "slot 1 holds IC2:reactorUraniumSimple"
+          }
+        ]
+      },
+      "gate": "insert_fuel"
+    },
+    {
+      "id": "4-activate",
+      "blocks": [
+        {
+          "pos": [
+            0,
+            1,
+            0
+          ],
+          "item": "minecraft:lever"
+        }
+      ],
+      "slots": [],
+      "acceptance": {
+        "structural": true,
+        "functional": []
+      },
+      "gate": "activate_machine"
+    }
+  ],
+  "safety": [
+    "fuel only after stages 1-structure and 2-cooling PASS",
+    "activation only through the lever at [0, 1, 0], so it can be switched off at once"
+  ],
+  "final_acceptance": [
+    {
+      "description": "reactor produces energy",
+      "actions": [
+        "use the lever at [0, 1, 0] to switch on",
+        "read_block_info on the reactor"
+      ],
+      "expect": "EU output > 0",
+      "gate": "activate_machine"
+    },
+    {
+      "description": "heat stays low",
+      "actions": [
+        "read_block_info on the reactor every 10 s for 60 s"
+      ],
+      "expect": "heat below 50% of max heat in every reading and not rising"
+    }
+  ],
+  "emergency_off": "use the lever at [0, 1, 0] to switch the reactor off, then take the fuel rod out of slot 1",
+  "sources": [
+    "research/reactor-structure.md",
+    "research/reactor-safe-layout.md"
+  ]
+}

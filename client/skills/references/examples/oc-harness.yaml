@@ -1,0 +1,21 @@
+# Пример конфига harness. Положить в корень проекта, из которого запускается агент.
+# Описание ключей: skills/references/config.md. Это шаблон, скопируйте его в корень проекта.
+versions:
+  minecraft: 1.7.10
+  ic2: "<set me>"
+  opencomputers: "<set me>"
+warehouse:
+  pos: [0, 64, 0]
+  side: north
+autonomy: confirm-phases   # auto | confirm-phases | confirm-steps
+budgets:
+  step_attempts: 3
+  stage_redelegations: 2
+  design_revisions: 1
+  research_sources: 6
+  robot_calls_per_stage: 150
+safety:
+  require_confirm: [insert_fuel, activate_machine, dig_near_structure]
+research:
+  sources: [rag, web, memory]
+  cache_dir: .oc-knowledge
