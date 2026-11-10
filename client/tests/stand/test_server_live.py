@@ -48,3 +48,26 @@ def test_tile_entity_exists(rcon):
     rcon.command("setblock 122 64 110 minecraft:planks 0 replace")
     control = rcon.command("testforblock 122 64 110 minecraft:planks 0 {x:999}")
     assert "successfully" in control.lower(), control
+
+
+def test_snapshot_reads_placed_blocks(rcon):
+    """После /setblock снимок из region-файлов видит те же имена и meta."""
+    from stand.world.snapshot import Box, capture
+
+    cfg = load_config()
+    placed = {
+        (101, 64, 95): ("IC2:blockGenerator", 0),
+        (102, 64, 95): ("IC2:blockMachine", 3),
+        (103, 64, 95): ("IC2:blockGenerator", 5),
+        (104, 64, 95): ("minecraft:cobblestone", 0),
+        (105, 63, 95): ("minecraft:air", 0),
+    }
+    box = Box((100, 63, 94), (106, 66, 96))
+    for (x, y, z) in box.iter():
+        if y > 63:
+            rcon.command(f"setblock {x} {y} {z} minecraft:air 0 replace")
+    rcon.command("setblock 105 63 95 minecraft:grass 0 replace")
+    for (x, y, z), (name, meta) in placed.items():
+        rcon.command(f"setblock {x} {y} {z} {name} {meta} replace")
+    snap = capture(rcon, cfg.world_dir, box)
+    assert snap.changed() == placed
