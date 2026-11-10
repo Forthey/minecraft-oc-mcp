@@ -37,6 +37,7 @@ class Workspace:
     path: Path
     mcp_config: Path | None
     mcp_args: list[str] = field(default_factory=list)
+    harness: dict = field(default_factory=dict)
 
     def cleanup(self) -> None:
         shutil.rmtree(self.path, ignore_errors=True)
@@ -122,27 +123,26 @@ def build_workspace(
     # Claude Code находит скиллы сам. Codex и opencode получают явную ссылку из AGENTS.md.
     if agent.mcp_format != "claude_json":
         (ws / "AGENTS.md").write_text(AGENTS_MD.replace("skills/", f"{skills_rel}/"), encoding="utf-8")
-    (ws / "oc-harness.yaml").write_text(
-        yaml.safe_dump(_harness(s, cfg), sort_keys=False, allow_unicode=True), encoding="utf-8"
-    )
+    harness = _harness(s, cfg)
+    (ws / "oc-harness.yaml").write_text(yaml.safe_dump(harness, sort_keys=False, allow_unicode=True), encoding="utf-8")
 
     spec = _server_spec(run_dir, s, cfg, profile)
     if agent.mcp_format == "claude_json":
         server = dict(spec, type="http") if "url" in spec else spec
         path = ws / "mcp.json"
         path.write_text(json.dumps({"mcpServers": {MCP_NAME: server}}, indent=2), encoding="utf-8")
-        return Workspace(ws, path)
+        return Workspace(ws, path, harness=harness)
     if agent.mcp_format == "opencode_json":
         if "url" in spec:
             server = {"type": "remote", "url": spec["url"]}
         else:
             server = {"type": "local", "command": [spec["command"], *spec["args"]], "environment": spec["env"]}
         (ws / "opencode.json").write_text(json.dumps({"mcp": {MCP_NAME: server}}, indent=2), encoding="utf-8")
-        return Workspace(ws, None)
+        return Workspace(ws, None, harness=harness)
     if agent.mcp_format == "codex_args":
         if "url" in spec:
             args = ["-c", f"mcp_servers.{MCP_NAME}.url={json.dumps(spec['url'])}", "-c", 'approval_policy="never"']
         else:
             args = _codex_args(spec)
-        return Workspace(ws, None, args)
+        return Workspace(ws, None, args, harness=harness)
     raise ValueError(f"unknown mcp_format {agent.mcp_format}")

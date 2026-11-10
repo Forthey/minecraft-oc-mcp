@@ -15,7 +15,10 @@ from stand.config import ROOT, Config
 from stand.judge import judge
 from stand.knowledge import KNOWLEDGE_DIR, Knowledge
 from stand.rcon import Rcon
-from stand.runner.agents import AgentCfg, AgentRun, render_cmd, run_agent
+from stand.runner import report
+from stand.runner.agents import AgentCfg, render_cmd, run_agent
+from stand.runner.metrics import collect
+from stand.runner.usage import parse_usage, robot_calls
 from stand.runner.reset import ensure_server, full_reset, prepare_scene, reset_region
 from stand.runner.workspace import build_workspace
 from stand.scenario import SCENARIOS_DIR, Scenario, load_scenario
@@ -80,23 +83,6 @@ def evaluate(cfg: Config, scenario: Scenario, k: Knowledge, run_dir: Path | None
     return result
 
 
-def basic_results(meta: dict, agent_run: AgentRun | None, judge_result: dict | None) -> dict:
-    """Минимальные результаты прогона: статус, вердикт, время. Метрики добавляет задача 12."""
-    if agent_run is None:
-        status = meta.get("status", "SKIPPED")
-    elif agent_run.timed_out:
-        status = "TIMEOUT"
-    else:
-        status = "PASS" if judge_result and judge_result["passed"] else "FAIL"
-    return {
-        **meta,
-        "status": status,
-        "duration_s": round(agent_run.duration_s, 1) if agent_run else None,
-        "exit_code": agent_run.exit_code if agent_run else None,
-        "judge": judge_result,
-    }
-
-
 async def _fetch_real_log(cfg: Config) -> list[dict]:
     from stand.conformance.checks import connect, parse_envelope
 
@@ -140,8 +126,8 @@ def run_one(
     }
 
     if cfg.robot_mcp == "real" and "fake" in scenario.requires:
-        results = basic_results({**meta, "status": "SKIPPED", "reason": "scenario requires fake MCP"}, None, None)
-        _write_results(run_dir, results)
+        report.write(run_dir, {**meta, "status": "SKIPPED", "reason": "scenario requires fake MCP"})
+        report.write_summary(runs_dir)
         return run_dir
 
     k = Knowledge.load(KNOWLEDGE_DIR, scenario.knowledge)
@@ -170,9 +156,14 @@ def run_one(
         error = fetch_real_action_log(cfg, run_dir / "action_log.jsonl")
         if error:
             meta["action_log_error"] = error
-    _write_results(run_dir, basic_results(meta, agent_run, judge_result))
+    if cfg.robot_mcp == "real" and meta.get("action_log_error"):
+        calls = robot_calls(agent.usage_parser, run_dir / "transcript.jsonl")
+        with open(run_dir / "action_log.jsonl", "w", encoding="utf-8") as f:
+            for c in calls:
+                f.write(json.dumps(c, ensure_ascii=False) + "\n")
+        meta["action_log_source"] = "transcript"
+    usage = parse_usage(agent.usage_parser, run_dir / "transcript.jsonl")
+    metrics = collect(run_dir, scenario, k, judge_result, agent_run, usage, ws.harness, agent.usage_parser)
+    report.write(run_dir, {**meta, **metrics})
+    report.write_summary(runs_dir)
     return run_dir
-
-
-def _write_results(run_dir: Path, results: dict) -> None:
-    (run_dir / "results.json").write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")

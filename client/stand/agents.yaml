@@ -9,7 +9,7 @@
 # mcp_format: claude_json (mcp.json и --mcp-config), opencode_json (opencode.json
 # в рабочей папке), codex_args (-c mcp_servers.robot.* в командной строке).
 # usage_parser: как достать токены и стоимость из вывода (claude_stream_json,
-# codex_json, none).
+# codex_json, opencode_json, none).
 #
 # Модель задаётся флагом в cmd, поэтому один агент с разными моделями это разные записи.
 # Флаги проверены на claude 2.1.322, codex-cli 0.167.0, opencode 2.1.0.
@@ -41,4 +41,4 @@ opencode:
   cmd: [opencode, run, --auto, --format, json, "{prompt}"]
   skills_dir: .opencode/skills
   mcp_format: opencode_json
-  usage_parser: none
+  usage_parser: opencode_json
