@@ -2,14 +2,14 @@
 
 This file is the single source of tool names for the skills. If the real MCP server differs, change this file.
 
-The team keeps a Russian copy with examples and open questions in `docs/mcp-contract.md` (repository root, not installed with the skills). When you change a tool, a parameter or an error code here, make the same change there in the same edit, then run the tests: `test_team_contract_doc_in_sync` fails if the two files list different tools or error codes.
+The team keeps a Russian copy with examples and open questions in `docs/mcp-contract.md` (repository root, not installed with the skills). When you change a tool, a parameter or an error code here, make the same change there in the same edit, and in the stand fake MCP (`stand/fake_mcp/dispatch.py`), then run the tests: `test_team_contract_doc_in_sync` fails if the two files list different tools or error codes, `test_tool_specs_match_contract` fails if the fake MCP differs.
 
 Items marked `(assumption, confirm with team)` are guesses about what the robot side can do. Treat them as available, but if a call returns an error that says the tool does not exist, report it as `BLOCKED` with that fact instead of working around it.
 
 ## Principles
 
 1. **Absolute coordinates.** Positions are `[x, y, z]` world coordinates. The robot's heading is `facing`, one of `north | south | east | west`. A `side` argument is one of `front | up | down`, plus `back | left | right` when the tool turns the robot by itself.
-2. **One response shape.** Every tool returns `{ok, error_code?, message, data}`. When `ok` is false, `error_code` is one of the codes in [Error codes](#error-codes).
+2. **One response shape.** Every tool returns `{ok, error_code?, message, data}`. When `ok` is false, `error_code` is one of the codes in [Error codes](#error-codes). `data` is always an object: list results sit in a field, such as `{"items": [...]}`, `{"recipes": [...]}`, `{"docs": [...]}`.
 3. **Compact by default.** Large results (scans, inventories, recipe trees, diffs) come back as a summary. Ask for details explicitly with `detail`, `limit` and `page`. Never request full detail just to look around.
 4. **High-level actions first.** Prefer `move_to` and `place_at` over chains of `move` and `place`.
 

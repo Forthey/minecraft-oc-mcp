@@ -16,7 +16,9 @@
 2. Изменить этот документ.
 3. Если менялся список кодов ошибок, обновить `ALL_ERROR_CODES` в `tools/validate_skills.py` и таблицу в `skills/references/error-handling.md`.
 4. Поправить скиллы, которые используют изменённый tool (таблица ниже).
-5. Запустить `.venv/bin/pytest -q` и `.venv/bin/python tools/validate_skills.py`. Тест `test_team_contract_doc_in_sync` падает, если набор tools здесь и в `tool-contract.md` расходится. Валидатор падает, если скилл ссылается на tool или код ошибки, которого нет в контракте.
+5. Поправить fake-MCP стенда: `TOOL_SPECS` в `stand/fake_mcp/dispatch.py` (описание и схема аргументов) и метод в `stand/fake_mcp/sim.py`. Тест `test_tool_specs_match_contract` падает, если набор tools fake-MCP расходится с контрактом.
+6. Запустить `.venv/bin/pytest -q` и `.venv/bin/python tools/validate_skills.py`. Тест `test_team_contract_doc_in_sync` падает, если набор tools здесь и в `tool-contract.md` расходится. Валидатор падает, если скилл ссылается на tool или код ошибки, которого нет в контракте.
+7. Прогнать `python -m stand.conformance --mcp fake`, а если реальный сервер уже есть, то и `--mcp real`.
 
 ### Где используются tools
 
@@ -69,7 +71,7 @@
 - `ok`: выполнилось ли действие.
 - `error_code`: только при `ok: false`, один из кодов из раздела "Коды ошибок".
 - `message`: короткий текст для человека, одна строка.
-- `data`: результат. Структура зависит от tool, примеры ниже.
+- `data`: результат, всегда объект. Структура зависит от tool, примеры ниже. Если результат по смыслу список (предметы, рецепты, документы, действия), он лежит в поле объекта: `{"items": [...]}`, `{"recipes": [...]}`, `{"docs": [...]}`, `{"actions": [...]}`.
 
 ## Tools
 
@@ -149,7 +151,7 @@
 
 ### Знания (пункты 1 и 3)
 
-**`search_items(query, limit)`**: поиск по индексу предметов, `[{"item": "...", "name": "...", "mod": "..."}]`.
+**`search_items(query, limit)`**: поиск по индексу предметов, `{"items": [{"item": "...", "name": "...", "mod": "..."}]}`.
 
 **`get_item(id)`**: карточка предмета.
 
@@ -158,9 +160,12 @@
 Рецепты из дампа NEI:
 
 ```json
-[{"type": "crafting_shaped", "output": {"item": "IC2:blockReactorChamber", "count": 1},
-  "grid": [["IC2:itemPlates:4", null, "IC2:itemPlates:4"], ["...", "...", "..."], ["...", "...", "..."]]},
- {"type": "machine", "machine": "IC2:blockMachine:3", "input": [...], "output": [...]}]
+{"recipes": [
+ {"type": "crafting_shaped", "output": {"item": "IC2:blockReactorChamber", "count": 1},
+  "grid": [[null, "IC2:itemPlates:6", null], ["IC2:itemPlates:6", "IC2:blockMachine", "IC2:itemPlates:6"], [null, "IC2:itemPlates:6", null]],
+  "ingredients": {"IC2:itemPlates:6": 4, "IC2:blockMachine": 1}},
+ {"type": "machine", "machine": "minecraft:furnace", "output": {"item": "minecraft:iron_ingot", "count": 1},
+  "ingredients": {"minecraft:iron_ore": 1}}]}
 ```
 
 **`plan_materials(item, count, use_inventory)`**
@@ -174,7 +179,7 @@
 
 **`search_docs(query, mod?, limit)`**
 
-Поиск по документации о механиках, мультиблоках, настройке машин. Ответ: `[{"doc_id": "...", "title": "...", "snippet": "...", "version": "IC2 2.2.x"}]`. Без этого tool агенту остаётся только веб-поиск.
+Поиск по документации о механиках, мультиблоках, настройке машин. Ответ: `{"docs": [{"doc_id": "...", "title": "...", "snippet": "...", "version": "IC2 2.2.x"}]}`. Без этого tool агенту остаётся только веб-поиск.
 
 ### Проверка
 
@@ -244,3 +249,4 @@
 ## История изменений
 
 - 2026-11-10: первая версия, 27 tools, 12 кодов ошибок.
+- 2026-11-10: уточнено, что `data` всегда объект и списки лежат в его полях. Пример рецептов приведён к рецептам IC2 2.2.827 (в рецепте есть `ingredients`). В правило синхронизации добавлен fake-MCP стенда.
