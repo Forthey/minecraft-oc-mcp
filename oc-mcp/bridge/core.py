@@ -22,8 +22,9 @@ def rpc_error(request_id, code, message):
 
 
 class Bridge:
-    def __init__(self, tools, host="127.0.0.1", port=8765, log_file=None):
+    def __init__(self, tools, host="127.0.0.1", port=8765, log_file=None, world_id=None):
         self.tools = {tool.name: tool for tool in tools}
+        self.world_id = world_id
         self.host = host
         self.port = port
         self.log_file = Path(log_file or DEFAULT_LOG_FILE)
@@ -126,10 +127,14 @@ class Bridge:
         if argument_error:
             return rpc_error(request_id, -32602, argument_error)
         command_id = uuid.uuid4().hex
-        self._commands.put({"id": command_id, "type": tool.name, **tool.prepare(arguments)})
+        self._commands.put({"id": command_id, "type": tool.name,
+                            **tool.prepare(arguments), **tool.context(self)})
         result = self._wait_for_result(command_id, tool.timeout)
         if result is None:
-            return rpc_error(request_id, -32000, "OpenComputers did not respond")
+            return rpc_error(request_id, -32000,
+                             f"OpenComputers did not respond within {tool.timeout:g}s. The command may still "
+                             "run later (singleplayer pauses when the game window loses focus): check the state, "
+                             "e.g. with inventory_scan, before retrying.")
         if not result.get("ok"):
             return rpc_error(request_id, -32001, result.get("error", "command failed"))
         return rpc_result(request_id, {

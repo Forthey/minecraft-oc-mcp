@@ -1,5 +1,4 @@
 return {
-  "print",
   "move",
   "turn",
   "inventory_scan",
@@ -8,7 +7,16 @@ return {
   "storage_take",
   "storage_put",
   "craft",
+  "craft_recipe",
   "equip",
   "swing",
   "use",
+  "surroundings",
+  "geo_scan",
+  "world_info",
+  "nei_find",
+  "nei_recipes",
+  "nei_recipe",
+  "nei_craft_tree",
+  "nei_machine_plan",
 }

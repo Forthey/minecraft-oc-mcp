@@ -5,6 +5,7 @@ local Robot = {}
 Robot.__index = Robot
 
 local SIDES = {front = sides.front, up = sides.up, down = sides.down}
+local ALL_SIDES = {"front", "back", "left", "right", "up", "down"}
 local DROPS = {front = "drop", up = "dropUp", down = "dropDown"}
 local TURNS = {left = "turnLeft", right = "turnRight", around = "turnAround"}
 local MOVES = {forward = "forward", back = "back", up = "up", down = "down"}
@@ -14,15 +15,11 @@ local function proxyOf(componentType)
   return address and component.proxy(address) or nil
 end
 
-function Robot.new(log, messagesPath)
-  local self = setmetatable({log = log, components = {}, screenLine = 1}, Robot)
+function Robot.new(log)
+  local self = setmetatable({log = log, components = {}}, Robot)
   for address, componentType in component.list() do
     log:write("component " .. componentType .. " " .. address)
   end
-  self.gpu = self:component("gpu")
-  self.screenBound = self:bindScreen()
-  if not self.screenBound then log:write("no screen bound: messages only go to the log") end
-  self.messages = messagesPath and io.open(messagesPath, "a") or nil
   if self:has("robot") then self.api = require("robot") end
   return self
 end
@@ -38,27 +35,6 @@ function Robot:has(componentType)
   return self:component(componentType) ~= nil
 end
 
-function Robot:bindScreen()
-  if not self.gpu then return false end
-  local screen = component.list("screen")()
-  if not screen then return false end
-  local ok, reason = pcall(self.gpu.bind, screen)
-  if not ok then self.log:write("gpu bind failed: " .. tostring(reason)) end
-  return ok
-end
-
-function Robot:print(message)
-  if self.messages then
-    self.messages:write(message .. "\n")
-    self.messages:flush()
-  end
-  if not self.screenBound then return end
-  local width, height = self.gpu.getResolution()
-  local row = math.min(self.screenLine, height)
-  self.gpu.fill(1, row, width, 1, " ")
-  self.gpu.set(1, row, message:sub(1, width))
-  self.screenLine = self.screenLine + 1
-end
 
 function Robot:move(direction, n)
   local step = MOVES[direction] and self.api[MOVES[direction]]
@@ -119,6 +95,48 @@ function Robot:transfer(fromSlot, toSlot, count)
     end
     return true
   end)
+end
+
+function Robot:surroundings()
+  local geolyzer = self:component("geolyzer")
+  local robotComponent = self:component("robot")
+  local result = {}
+  for _, name in ipairs(ALL_SIDES) do
+    local entry = {side = name}
+    if robotComponent and SIDES[name] then
+      local ok, _, kind = pcall(robotComponent.detect, sides[name])
+      if ok then entry.kind = kind end
+    end
+    if geolyzer then
+      local ok, block = pcall(geolyzer.analyze, sides[name])
+      if ok and type(block) == "table" then
+        entry.name = block.name
+        entry.metadata = block.metadata
+        entry.hardness = block.hardness
+      end
+    end
+    table.insert(result, entry)
+  end
+  return result
+end
+
+local AXES = {
+  [sides.north] = {forward = {0, -1}, right = {1, 0}},
+  [sides.south] = {forward = {0, 1}, right = {-1, 0}},
+  [sides.west] = {forward = {-1, 0}, right = {0, -1}},
+  [sides.east] = {forward = {1, 0}, right = {0, 1}},
+}
+
+function Robot:axes()
+  local navigation = self:component("navigation")
+  if not navigation then return nil end
+  local ok, facing = pcall(navigation.getFacing)
+  return ok and AXES[facing] or nil
+end
+
+function Robot:geoScan(x, z, y, width, depth, height)
+  local geolyzer = self:component("geolyzer")
+  return geolyzer.scan(x, z, y, width, depth, height)
 end
 
 function Robot:blockName(sideName)

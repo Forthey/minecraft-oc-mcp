@@ -72,7 +72,7 @@ def is_instance(value, python_type):
 
 
 def unwrap_optional(hint):
-    if get_origin(hint) in (Union, getattr(types, "UnionType", Union)):
+    if get_origin(hint) in (Union, types.UnionType):
         args = [arg for arg in get_args(hint) if arg is not type(None)]
         if len(args) == 1 and len(get_args(hint)) == 2:
             return args[0], True
@@ -115,6 +115,10 @@ class Tool:
         cls.fields = collect_fields(cls)
 
     @classmethod
+    def context(cls, bridge):
+        return {}
+
+    @classmethod
     def schema(cls):
         return {
             "type": "object",
@@ -137,6 +141,11 @@ class Tool:
     def validate(cls, arguments):
         if not isinstance(arguments, dict):
             return "arguments must be an object"
+        known = {field.name for field in cls.fields}
+        unknown = sorted(set(arguments) - known)
+        if unknown:
+            expected = ", ".join(field.name for field in cls.fields) or "no arguments"
+            return f"unknown argument(s): {', '.join(unknown)}; {cls.name} takes: {expected}"
         for field in cls.fields:
             if arguments.get(field.name) is None:
                 if field.required:

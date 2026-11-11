@@ -1,17 +1,10 @@
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal
 
 from schema import Range, Tool
 
 Side = Literal["front", "up", "down"]
 Slot = Annotated[int, Range(1)]
 Count = Annotated[int, Range(1, 64)]
-
-
-class Print(Tool):
-    name = "print"
-    description = "Print a string on the OpenComputers robot screen."
-
-    message: str
 
 
 class Move(Tool):
@@ -45,7 +38,7 @@ class InventoryTransfer(Tool):
 
     from_slot: Slot
     to_slot: Slot
-    count: Optional[Count]
+    count: Count | None
 
 
 class StorageScan(Tool):
@@ -64,8 +57,8 @@ class StorageTake(Tool):
 
     side: Side
     slot: Slot
-    count: Optional[Count]
-    robot_slot: Optional[Slot]
+    count: Count | None
+    robot_slot: Slot | None
 
 
 class StoragePut(Tool):
@@ -75,13 +68,14 @@ class StoragePut(Tool):
 
     side: Side
     robot_slot: Slot
-    count: Optional[Count]
-    slot: Optional[Slot]
+    count: Count | None
+    slot: Slot | None
 
 
 class Craft(Tool):
     name = "craft"
-    description = ("Craft using the robot inventory as a 3x3 crafting grid. "
+    description = ("Low-level crafting of whatever is already laid out in the robot crafting grid. "
+                   "Prefer craft_recipe, which lays the grid out by itself from a NEI recipe id. "
                    "The inventory is 4 slots wide, so the grid is NOT slots 1-9 in a row. "
                    "Grid position -> inventory slot:\n"
                    "  [ 1][ 2][ 3]   (slots 4, 8, 12 and 13+ are outside the grid)\n"
@@ -94,8 +88,8 @@ class Craft(Tool):
                    "The result goes to result_slot (or the selected slot) and following free slots; "
                    "pick a slot outside the grid.")
 
-    count: Optional[Count]
-    result_slot: Optional[Slot]
+    count: Count | None
+    result_slot: Slot | None
 
 
 class Equip(Tool):
@@ -109,8 +103,10 @@ class Equip(Tool):
 class Swing(Tool):
     name = "swing"
     description = ("Left-click with the equipped tool: break the block or attack the entity "
-                   "on the given side. Dropped items go to the robot inventory. "
-                   "Reports what was hit and the remaining tool durability.")
+                   "on the given side (front/up/down only; turn to reach left/right/back). "
+                   "One successful swing breaks a block; drops go to the robot inventory. "
+                   "Hard blocks (stone, ores, furnaces) need a suitable tool equipped with equip, "
+                   "otherwise the swing fails and says so.")
 
     side: Side = "front"
     sneaky: bool = False
@@ -124,8 +120,141 @@ class Use(Tool):
 
     side: Side = "front"
     sneaky: bool = False
-    duration: Optional[Annotated[float, Range(0, 30)]]
+    duration: Annotated[float, Range(0, 30)] | None
 
 
-TOOLS = [Print, Move, Turn, InventoryScan, InventoryTransfer, StorageScan, StorageTake, StoragePut, Craft,
-         Equip, Swing, Use]
+class Surroundings(Tool):
+    name = "surroundings"
+    description = ("Identify the six blocks right next to the robot, relative to where it faces now "
+                   "(front, back, left, right, up, down; turning changes them): "
+                   "block id, hardness, and for front/up/down whether it is solid, passable, liquid, "
+                   "replaceable, air or an entity. Needs a geolyzer.")
+
+
+Offset = Annotated[int, Range(-32, 32)]
+Size = Annotated[int, Range(1, 64)]
+
+
+class GeoScan(Tool):
+    name = "geo_scan"
+    description = ("Scan a box of blocks around the robot with the geolyzer and return their hardness "
+                   "(not block names). Offsets are relative to the robot. With a navigation upgrade "
+                   "the axes follow the robot: x = right, z = forward; without it they are world axes: "
+                   "x = east, z = south. y = up. The first line of the answer states which axes were used. "
+                   "width*depth*height must be <= 64. Values are noisy, more so farther away: "
+                   ". = air, ~0.5 dirt/sand/gravel, ~1.5 stone, ~2-3 ores, ~50 obsidian, "
+                   "100 liquid, -1 bedrock. Use surroundings to identify adjacent blocks exactly.")
+
+    x: Offset = -4
+    z: Offset = -4
+    y: Offset = 0
+    width: Size = 8
+    depth: Size = 8
+    height: Size = 1
+
+
+class WorldInfo(Tool):
+    name = "world_info"
+    description = ("Identity and position of the robot for the memory service: world_id (configured on the "
+                   "bridge, pass it to memory open as is), robot_id (address of the robot computer), "
+                   "robot name, and with a navigation upgrade its x/y/z and facing.")
+
+    @classmethod
+    def context(cls, bridge):
+        return {"world_id": bridge.world_id} if bridge.world_id else {}
+
+
+Lang = str | None
+Limit = Annotated[int, Range(1, 50)] | None
+
+NEI_NOTE = (" Item ids are 'mod:name:damage' strings (e.g. minecraft:iron_ingot:0); get them with nei_find. "
+            "Answers are JSON. Recipe data comes from a player's NEI client: "
+            "NO_PROVIDER means no player with the mod is online.")
+
+
+class NeiFind(Tool):
+    name = "nei_find"
+    description = ("Find items by name in any language. Supports @mod, #oreName, $unlocalized, /regex/; "
+                   "terms are AND-ed. Returns item ids with names." + NEI_NOTE)
+    timeout = 140
+
+    text: str
+    limit: Limit
+    lang: Lang
+
+
+class NeiRecipes(Tool):
+    name = "nei_recipes"
+    description = ("All recipes that produce the item (crafting table, furnace, machines), compact; "
+                   "with usages=true, recipes that use the item as an ingredient instead. "
+                   "Each recipe has an id for nei_recipe/nei_machine_plan; "
+                   "category filters by part of the NEI category id or name (e.g. smelting, macerat). "
+                   "If truncated, call again with the returned cursor." + NEI_NOTE)
+    timeout = 60
+
+    item: str
+    usages: bool = False
+    category: str | None
+    limit: Limit
+    cursor: str | None
+    lang: Lang
+
+
+class NeiRecipe(Tool):
+    name = "nei_recipe"
+    description = ("One recipe by id in full: every position with all interchangeable items, and for "
+                   "crafting-table recipes the robot inventory slot (robotSlot) for each grid cell. "
+                   "To craft it, pass the id to craft_recipe." + NEI_NOTE)
+    timeout = 60
+
+    recipe: str
+    lang: Lang
+
+
+class NeiCraftTree(Tool):
+    name = "nei_craft_tree"
+    description = ("Resolve the whole crafting tree of an item in one call: steps in execution order "
+                   "(recipe id, category, runs, per-run in/out, robotSlot grid for crafting-table steps), "
+                   "raw materials still to obtain, machines needed, alternatives. "
+                   "use_inventory subtracts what the robot already carries. "
+                   "Crafting-table steps: craft_recipe {recipe: step.recipe, count: step.runs}." + NEI_NOTE)
+    timeout = 90
+
+    item: str
+    count: Annotated[int, Range(1, 1000000)] = 1
+    use_inventory: bool = True
+    lang: Lang
+
+
+class CraftRecipe(Tool):
+    name = "craft_recipe"
+    description = ("Craft a crafting-table recipe by its NEI recipe id (from nei_recipes, nei_recipe or a "
+                   "nei_craft_tree step). The robot moves whatever is in its crafting grid out of the way, "
+                   "lays the ingredients out from its own inventory, crafts count times and puts the result "
+                   "into a free slot outside the grid. Interchangeable ingredients (any planks, ore dictionary) "
+                   "are matched automatically. Ingredients must already be in the robot inventory; "
+                   "if something is missing, the answer lists it. Each grid slot holds at most 64 items, "
+                   "so split bigger runs into several calls." + NEI_NOTE)
+    timeout = 120
+
+    recipe: str
+    count: Count = 1
+
+
+class NeiMachinePlan(Tool):
+    name = "nei_machine_plan"
+    description = ("For a machine/furnace next to the robot: which slots to put each ingredient of a recipe into "
+                   "and where to take results, checked from the robot's position. "
+                   "Use the put/take slots with storage_put/storage_take. "
+                   "times = how many runs (step.runs from nei_craft_tree)." + NEI_NOTE)
+    timeout = 60
+
+    side: Side = "front"
+    recipe: str
+    times: Annotated[int, Range(1)] | None
+    lang: Lang
+
+
+TOOLS = [Move, Turn, InventoryScan, InventoryTransfer, StorageScan, StorageTake, StoragePut, Craft,
+         Equip, Swing, Use, Surroundings, GeoScan, WorldInfo,
+         NeiFind, NeiRecipes, NeiRecipe, NeiCraftTree, CraftRecipe, NeiMachinePlan]

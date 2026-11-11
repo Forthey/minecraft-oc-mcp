@@ -15,7 +15,7 @@ local log = Log.open(root .. "oc_mcp.log")
 log:write("oc-mcp client starting")
 print("oc-mcp starting...")
 
-local robot = Robot.new(log, root .. "messages.log")
+local robot = Robot.new(log)
 local internet = robot:component("internet")
 if not internet then
   log:write("ERROR: Internet Card is required")
