@@ -76,3 +76,27 @@ def test_run_agent_timeout_kills_tree(tmp_path):
     while _alive(child) and time.monotonic() < deadline:
         time.sleep(0.2)
     assert not _alive(child)
+
+
+def test_run_agent_sets_pwd_to_workspace(tmp_path):
+    # opencode берёт папку проекта из PWD, а не из настоящего cwd процесса.
+    run_agent([sys.executable, "-c", "import os; print(os.environ['PWD'])"], tmp_path, 30,
+              tmp_path / "t.jsonl", tmp_path / "err.log")
+    assert (tmp_path / "t.jsonl").read_text().strip() == str(tmp_path)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="группа процессов есть только на POSIX")
+def test_run_agent_kills_leftover_children_after_exit(tmp_path):
+    pidfile = tmp_path / "child.pid"
+    code = (
+        "import subprocess, sys\n"
+        "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+        f"open(r'{pidfile}', 'w').write(str(p.pid))\n"
+    )
+    run = run_agent([sys.executable, "-c", code], tmp_path, 30, tmp_path / "t.jsonl", tmp_path / "err.log")
+    assert run.exit_code == 0 and not run.timed_out
+    child = int(pidfile.read_text())
+    deadline = time.monotonic() + 5
+    while _alive(child) and time.monotonic() < deadline:
+        time.sleep(0.2)
+    assert not _alive(child)

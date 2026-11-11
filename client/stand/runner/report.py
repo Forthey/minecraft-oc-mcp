@@ -71,11 +71,17 @@ def render_report(r: dict) -> str:
         f"| Ошибки по кодам | {r.get('errors_by_code') or '-'} |",
         f"| Агент заявил успех | {_fmt(r.get('claimed_success'))} |",
         f"| Ложный успех | {_fmt(r.get('false_success'))} |",
-        f"| Токены вход/выход | {_fmt(usage.get('input_tokens'))} / {_fmt(usage.get('output_tokens'))} |",
+        f"| Код выхода агента | {_fmt(r.get('exit_code'))} |",
+        f"| Токены вход/кэш/выход | {_fmt(usage.get('input_tokens'))} / {_fmt(usage.get('cached_input_tokens'))} / "
+        f"{_fmt(usage.get('output_tokens'))} |",
         f"| Стоимость, $ | {_fmt(usage.get('cost_usd'), 4)} |",
         f"| Точность spec.json | {(r.get('spec_accuracy') or {}).get('accuracy', '-')} |",
         "",
     ]
+    if usage.get("agent_error"):
+        lines += ["## Ошибка агента", "",
+                  "Прогон оборван ошибкой провайдера или CLI агента и не отражает поведение скиллов.", "",
+                  "```", str(usage["agent_error"])[:1000], "```", ""]
     lines += _judge_section(r.get("judge"))
     violations = r.get("violations") or []
     lines += ["## Нарушения правил", ""]

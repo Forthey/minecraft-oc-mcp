@@ -49,7 +49,14 @@ script:
   usage_parser: none
 
 opencode:
-  cmd: [opencode, run, --auto, --format, json, "{prompt}"]
+  cmd: [opencode, run, --standalone, --auto, --format, json, "{prompt}"]
+  skills_dir: .opencode/skills
+  mcp_format: opencode_json
+  usage_parser: opencode_json
+
+# Бесплатная модель opencode, для прогонов без затрат.
+opencode-free:
+  cmd: [opencode, run, --standalone, --auto, --format, json, --model, opencode/big-pickle, "{prompt}"]
   skills_dir: .opencode/skills
   mcp_format: opencode_json
   usage_parser: opencode_json

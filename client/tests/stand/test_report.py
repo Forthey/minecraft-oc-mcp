@@ -46,3 +46,21 @@ def test_write_creates_both_files(tmp_path):
     write(tmp_path, _results("PASS"))
     assert json.loads((tmp_path / "results.json").read_text())["status"] == "PASS"
     assert (tmp_path / "report.md").read_text(encoding="utf-8").startswith("# ")
+
+
+def test_report_shows_agent_error_and_exit_code():
+    r = _results("PASS", exit_code=1)
+    r["usage"]["agent_error"] = "provider.quota: Free usage limit reached."
+    text = render_report(r)
+    assert "| Код выхода агента | 1 |" in text
+    assert "## Ошибка агента" in text and "provider.quota" in text
+
+
+def test_report_shows_cached_tokens():
+    r = _results("PASS")
+    r["usage"]["cached_input_tokens"] = 945689
+    assert "| Токены вход/кэш/выход | 1000 / 945689 / 100 |" in render_report(r)
+
+
+def test_report_without_agent_error_has_no_section():
+    assert "## Ошибка агента" not in render_report(_results("PASS", exit_code=0))

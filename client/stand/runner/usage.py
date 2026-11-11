@@ -31,19 +31,41 @@ def _events(path: Path) -> list[dict]:
 
 def _empty() -> dict:
     return {"input_tokens": None, "output_tokens": None, "cached_input_tokens": None,
-            "cost_usd": None, "final_text": None, "num_turns": None}
+            "cost_usd": None, "final_text": None, "num_turns": None, "agent_error": None}
+
+
+def _agent_error(kind: str, events: list[dict]) -> str | None:
+    """Последняя ошибка провайдера или CLI агента из вывода. None, если ошибок не было.
+
+    Такая ошибка (квота, перегрузка API) обрывает прогон, и он не отражает
+    поведение скиллов, даже если судья дал PASS.
+    """
+    for e in reversed(events):
+        if kind == "claude_stream_json" and e.get("type") == "result" and e.get("is_error"):
+            return f"{e.get('subtype', 'error')}: {e.get('result', '')}".strip()
+        if kind == "codex_json" and e.get("type") in ("turn.failed", "error"):
+            err = e.get("error") if isinstance(e.get("error"), dict) else {}
+            return str(err.get("message") or e.get("message") or e.get("type"))
+        if kind == "opencode_json" and e.get("type") == "error":
+            err = e.get("error") if isinstance(e.get("error"), dict) else {}
+            message = err.get("message") or (err.get("data") or {}).get("message") or ""
+            return f"{err.get('type', 'error')}: {message}".strip()
+    return None
 
 
 def parse_usage(kind: str, transcript: Path) -> dict:
     """Токены, стоимость и финальный текст. Неизвестное значение None."""
     u = _empty()
     events = _events(transcript)
+    u["agent_error"] = _agent_error(kind, events)
     if kind == "claude_stream_json":
         result = next((e for e in reversed(events) if e.get("type") == "result"), None)
         if result:
             usage = result.get("usage") or {}
             u.update(
-                input_tokens=usage.get("input_tokens"),
+                # Запись в кэш тоже некэшированный вход, иначе вход выглядит как десятки токенов.
+                input_tokens=(None if usage.get("input_tokens") is None
+                              else usage["input_tokens"] + (usage.get("cache_creation_input_tokens") or 0)),
                 output_tokens=usage.get("output_tokens"),
                 cached_input_tokens=usage.get("cache_read_input_tokens"),
                 cost_usd=result.get("total_cost_usd"),
@@ -63,6 +85,15 @@ def parse_usage(kind: str, transcript: Path) -> dict:
         u["final_text"] = messages[-1] if messages else None
         return u
     if kind == "opencode_json":
+        # Токены и стоимость opencode пишет в каждом step_finish, итог это сумма по шагам.
+        steps = [e["part"] for e in events
+                 if (e.get("part") or {}).get("type") == "step-finish" and isinstance(e["part"].get("tokens"), dict)]
+        if steps:
+            u["input_tokens"] = sum(s["tokens"].get("input", 0) for s in steps)
+            u["output_tokens"] = sum(s["tokens"].get("output", 0) for s in steps)
+            u["cached_input_tokens"] = sum((s["tokens"].get("cache") or {}).get("read", 0) for s in steps)
+            u["cost_usd"] = sum(s.get("cost") or 0 for s in steps)
+            u["num_turns"] = len(steps)
         texts = [(e.get("part") or {}).get("text") for e in events if (e.get("part") or {}).get("type") == "text"]
         u["final_text"] = texts[-1] if texts else None
         return u

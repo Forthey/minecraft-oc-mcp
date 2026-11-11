@@ -116,6 +116,14 @@ def _kill_tree(proc: subprocess.Popen) -> None:
         pass
 
 
+def _kill_leftovers(pgid: int) -> None:
+    """Убивает процессы группы, пережившие выход агента. Пустая группа не ошибка."""
+    try:
+        os.killpg(pgid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+
+
 def run_agent(
     cmd: list[str],
     cwd: Path,
@@ -126,8 +134,12 @@ def run_agent(
 ) -> AgentRun:
     """Запускает агента, stdout пишет в transcript, stderr в stderr_log.
 
+    PWD выставляется в cwd: opencode определяет папку проекта по PWD, и с
+    унаследованным PWD агент открывался в корне репозитория, где видны ответы.
+
     По таймауту убивает всё дерево процессов: на Windows через taskkill /T, на
-    POSIX через группу процессов (агент запускается в новой сессии).
+    POSIX через группу процессов (агент запускается в новой сессии). На POSIX
+    группа добивается и после штатного выхода, чтобы не оставались MCP-серверы.
     """
     kwargs = {}
     if sys.platform == "win32":
@@ -139,11 +151,13 @@ def run_agent(
     with open(transcript, "wb") as out, open(stderr_log, "wb") as err:
         proc = subprocess.Popen(
             cmd, cwd=cwd, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
-            env={**os.environ, **(env or {})}, **kwargs,
+            env={**os.environ, **(env or {}), "PWD": str(cwd)}, **kwargs,
         )
         try:
             code = proc.wait(timeout=timeout_s)
             timed_out = False
+            if sys.platform != "win32":
+                _kill_leftovers(proc.pid)
         except subprocess.TimeoutExpired:
             _kill_tree(proc)
             code = proc.poll()

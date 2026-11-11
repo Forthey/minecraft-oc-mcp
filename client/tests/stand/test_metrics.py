@@ -174,7 +174,17 @@ def test_claude_usage_parse(tmp_path):
     path.write_text("\n".join(json.dumps(e) for e in events) + "\nnot json\n", encoding="utf-8")
     u = parse_usage("claude_stream_json", path)
     assert u == {"input_tokens": 100, "output_tokens": 20, "cached_input_tokens": 50, "cost_usd": 0.42,
-                 "final_text": "Wall built.", "num_turns": 7}
+                 "final_text": "Wall built.", "num_turns": 7, "agent_error": None}
+
+
+def test_claude_input_includes_cache_creation(tmp_path):
+    # Как у opencode: вход это всё некэшированное (с записью в кэш), чтение кэша отдельно.
+    path = tmp_path / "t.jsonl"
+    path.write_text(json.dumps({"type": "result", "result": "ok", "usage": {
+        "input_tokens": 50, "cache_creation_input_tokens": 43916, "cache_read_input_tokens": 945689,
+        "output_tokens": 10653}}), encoding="utf-8")
+    u = parse_usage("claude_stream_json", path)
+    assert (u["input_tokens"], u["cached_input_tokens"]) == (43966, 945689)
 
 
 def test_codex_usage_parse(tmp_path):
@@ -200,6 +210,19 @@ def test_opencode_usage_parse(tmp_path):
     assert parse_usage("opencode_json", path)["final_text"] == "Done"
 
 
+def test_opencode_usage_tokens_from_step_finish(tmp_path):
+    def step(i, o, cached, cost):
+        return {"type": "step_finish", "part": {"type": "step-finish", "cost": cost,
+                "tokens": {"input": i, "output": o, "reasoning": 0, "cache": {"read": cached, "write": 0}}}}
+    events = [step(100, 10, 5, 0.01), {"type": "text", "part": {"type": "text", "text": "Done"}}, step(200, 20, 0, 0.02)]
+    path = tmp_path / "t.jsonl"
+    path.write_text("\n".join(json.dumps(e) for e in events), encoding="utf-8")
+    u = parse_usage("opencode_json", path)
+    assert (u["input_tokens"], u["output_tokens"], u["cached_input_tokens"], u["num_turns"]) == (300, 30, 5, 2)
+    assert u["cost_usd"] == pytest.approx(0.03)
+    assert u["final_text"] == "Done"
+
+
 def test_non_utf8_transcript(tmp_path):
     path = tmp_path / "t.jsonl"
     path.write_bytes(b"\xff\xfe garbage\n" + json.dumps({"type": "result", "result": "ok"}).encode())
@@ -223,3 +246,33 @@ def test_unknown_results_not_repeated_violation(tmp_path, s01, k):
     call = {"tool": "place_at", "args": {"x": 1}, "ok": None, "error_code": None}
     _log(tmp_path, [call, call, call])
     assert "repeated_call" not in _rules(_collect(tmp_path, s01, k))
+
+
+def _write_events(tmp_path, events):
+    path = tmp_path / "t.jsonl"
+    path.write_text("\n".join(json.dumps(e) for e in events), encoding="utf-8")
+    return path
+
+
+def test_agent_error_opencode_quota(tmp_path):
+    path = _write_events(tmp_path, [
+        {"type": "text", "part": {"type": "text", "text": "Working"}},
+        {"type": "error", "error": {"type": "provider.quota", "message": "Free usage limit reached.", "status": 429}},
+    ])
+    assert parse_usage("opencode_json", path)["agent_error"] == "provider.quota: Free usage limit reached."
+
+
+def test_agent_error_claude_result(tmp_path):
+    path = _write_events(tmp_path, [{"type": "result", "subtype": "error_during_execution", "is_error": True,
+                                     "result": "API Error: 529 overloaded"}])
+    assert parse_usage("claude_stream_json", path)["agent_error"] == "error_during_execution: API Error: 529 overloaded"
+
+
+def test_agent_error_codex_turn_failed(tmp_path):
+    path = _write_events(tmp_path, [{"type": "turn.failed", "error": {"message": "rate limit"}}])
+    assert parse_usage("codex_json", path)["agent_error"] == "rate limit"
+
+
+def test_agent_error_none_on_clean_run(tmp_path):
+    path = _write_events(tmp_path, [{"type": "result", "subtype": "success", "is_error": False, "result": "ok"}])
+    assert parse_usage("claude_stream_json", path)["agent_error"] is None
