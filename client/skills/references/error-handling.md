@@ -20,6 +20,8 @@ Every role follows this file. Budget names refer to keys in [config.md](config.m
 | `NO_RECIPE` | `get_recipes` with an alternative name from `search_items` | none | Return `PARTIAL`. The orchestrator treats the item as missing |
 | `TIMEOUT` | `get_status` to see whether the action happened | Repeat once only if the state shows it did not happen | Return `BLOCKED` |
 | `CONNECTION_LOST` | Do not repeat the action. Call `get_status` and compare position and inventory with the journal and your last report | Continue from the real state, not from the assumed one | If `get_status` keeps failing, return `BLOCKED` |
+| `UNSUPPORTED` | Do not retry. Note the tool and the missing component from the message | none | Return `BLOCKED` with the tool and the component. The orchestrator tells the user which upgrade the robot needs |
+| `NO_PROVIDER` | Do not retry right away. If your role has another knowledge source (researcher: `search_docs` or the web), use it | none | Return `BLOCKED` with "recipe data unavailable". The orchestrator asks the user to join the game with NEI |
 
 ## Anti-loop rules
 

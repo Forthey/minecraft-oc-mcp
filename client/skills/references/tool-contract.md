@@ -100,3 +100,5 @@ Machine processing (furnace, macerator and so on) has no dedicated tool: use `pu
 | `NO_RECIPE` | No known recipe for the item |
 | `TIMEOUT` | The action did not finish in time |
 | `CONNECTION_LOST` | The link to the robot dropped. The action may or may not have happened |
+| `UNSUPPORTED` | The robot lacks the component or upgrade this tool needs. The message names it |
+| `NO_PROVIDER` | Recipe data is unavailable right now: no player with NEI is online and the answer is not cached |

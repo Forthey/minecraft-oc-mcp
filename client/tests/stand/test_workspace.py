@@ -37,7 +37,7 @@ def test_workspace_claude(tmp_path, s01):
     assert harness["autonomy"] == "auto"
     assert harness["safety"]["require_confirm"] == []
     assert harness["warehouse"] == {"pos": [95, 64, 105], "side": "east"}
-    assert harness["versions"]["ic2"] == "2.2.827-experimental"
+    assert harness["versions"]["ic2"] == "2.2.828-experimental"
     cfg = json.loads(ws.mcp_config.read_text(encoding="utf-8"))
     server = cfg["mcpServers"]["robot"]
     assert server["env"]["PYTHONPATH"] == str(ROOT)

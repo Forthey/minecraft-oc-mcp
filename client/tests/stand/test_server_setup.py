@@ -94,6 +94,21 @@ def test_install_mods_uses_cache_and_checks_sha(cfg, tmp_path):
         setup.install_mods(cfg, bad)
 
 
+def test_install_mods_removes_jars_not_in_manifest(cfg, tmp_path):
+    # Старая версия мода рядом с новой роняет Forge на дубликате. Подпапки (mods/1.7.10
+    # с библиотеками CodeChickenCore) не трогаются.
+    data = b"jar-bytes"
+    cfg.mods_cache.mkdir(parents=True)
+    (cfg.mods_cache / "demo.jar").write_bytes(data)
+    mods_dir = cfg.server_dir / "mods"
+    (mods_dir / "1.7.10").mkdir(parents=True)
+    (mods_dir / "old-version.jar").write_bytes(b"old")
+    (mods_dir / "1.7.10" / "lib.jar").write_bytes(b"lib")
+    setup.install_mods(cfg, _manifest(tmp_path, data, hashlib.sha256(data).hexdigest()))
+    assert sorted(p.name for p in mods_dir.glob("*.jar")) == ["demo.jar"]
+    assert (mods_dir / "1.7.10" / "lib.jar").exists()
+
+
 def test_install_mods_missing_without_url_explains(cfg, tmp_path):
     manifest = _manifest(tmp_path, b"", None)
     with pytest.raises(FileNotFoundError, match="mods-cache|demo.jar"):

@@ -108,7 +108,8 @@
         "tool": {"type": "string"},
         "call": {"type": "integer", "minimum": 1},
         "error": {"enum": ["BLOCKED", "NO_PATH", "OUT_OF_RANGE", "NO_ITEM", "INVENTORY_FULL", "NO_ENERGY",
-                            "TOOL_BROKEN", "CANT_PLACE", "UNKNOWN_ITEM", "NO_RECIPE", "TIMEOUT", "CONNECTION_LOST"]},
+                            "TOOL_BROKEN", "CANT_PLACE", "UNKNOWN_ITEM", "NO_RECIPE", "TIMEOUT", "CONNECTION_LOST",
+                            "UNSUPPORTED", "NO_PROVIDER"]},
         "effect": {"enum": ["applied", "skipped"]}
       }}},
     "requires": {"type": "array", "items": {"enum": ["fake"]}},

@@ -98,10 +98,17 @@ def install_mods(cfg: Config, manifest: Path, pin: bool = False) -> list[Path]:
     """Копирует моды из кэша в server_dir/mods, недостающие скачивает.
 
     При pin=True вписывает sha256 скачанных файлов в манифест вместо проверки.
+    Jar верхнего уровня в mods/, которых нет в манифесте, удаляются: старая версия
+    мода рядом с новой роняет Forge. Подпапки не трогаются, в mods/1.7.10
+    CodeChickenCore держит свои библиотеки.
     """
     data = yaml.safe_load(manifest.read_text(encoding="utf-8"))
     mods_dir = cfg.server_dir / "mods"
     mods_dir.mkdir(parents=True, exist_ok=True)
+    wanted = {mod["file"] for mod in data["mods"]}
+    for stale in mods_dir.glob("*.jar"):
+        if stale.name not in wanted:
+            stale.unlink()
     cfg.mods_cache.mkdir(parents=True, exist_ok=True)
     installed = []
     pinned: dict[str, str] = {}
