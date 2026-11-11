@@ -2,11 +2,14 @@ package com.pathfinding;
 
 import java.util.*;
 
+
 public class MicroPlanner {
     // Штраф за подъем на 1 блок (например, 5.0 значит, что 1 блок вверх = 5 блоков по горизонтали)
     public static final double CLIMB_PENALTY = 5.0;
     // Штраф за спуск (спускаться обычно быстрее, чем подниматься)
     public static final double DESCEND_PENALTY = 1.0;
+
+    public static final int FLIGHT_ALTITUDE = 3;
 
     private record Node(int x, int z, double f) {}
 
@@ -22,8 +25,8 @@ public class MicroPlanner {
      * @return Список мировых координат [x, y, z]
      */
     public static List<int[]> findPath(int[][] stitchedMap,
-                                       int startX, int startZ,
-                                       int goalX, int goalZ,
+                                       int startX, int startZ, int startY,
+                                       int goalX, int goalZ, int goalY,
                                        int worldOffsetX, int worldOffsetZ) {
 
         int width = stitchedMap.length;
@@ -95,19 +98,25 @@ public class MicroPlanner {
             int x = (int) (curr >> 32);
             int z = (int) (curr & 0xFFFFFFFFL);
 
-            // Переводим в мировые координаты
             int worldX = worldOffsetX + x;
             int worldZ = worldOffsetZ + z;
-            int worldY = stitchedMap[x][z] + 1; // Робот стоит НА блоке
+
+            // Вычисляем Y: если это финиш, берем реальную высоту цели. Иначе - высота поверхности + 3.
+            int worldY;
+            if (x == goalX && z == goalZ) {
+                worldY = goalY;
+            } else {
+                worldY = stitchedMap[x][z] + FLIGHT_ALTITUDE;
+            }
 
             path.addFirst(new int[]{worldX, worldY, worldZ});
             curr = cameFrom.get(curr);
         }
 
-        // Добавляем стартовую точку
+        // Добавляем стартовую точку (реальная высота робота на старте)
         int sx = (int) (startKey >> 32);
         int sz = (int) (startKey & 0xFFFFFFFFL);
-        path.addFirst(new int[]{worldOffsetX + sx, stitchedMap[sx][sz] + 1, worldOffsetZ + sz});
+        path.addFirst(new int[]{worldOffsetX + sx, startY, worldOffsetZ + sz});
 
         return expandVerticalMoves(path);
     }
