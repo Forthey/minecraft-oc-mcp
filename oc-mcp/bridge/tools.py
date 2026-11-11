@@ -112,6 +112,19 @@ class Swing(Tool):
     sneaky: bool = False
 
 
+class Place(Tool):
+    name = "place"
+    description = ("Place a block from a robot inventory slot on the given side "
+                   "(front/up/down only; turn to reach left/right/back). "
+                   "The target space must be free (air, water, tall grass); break it with swing first. "
+                   "If slot is omitted, the currently selected slot is used. "
+                   "sneaky places like a sneaking player (needed for some blocks).")
+
+    side: Side = "front"
+    slot: Slot | None
+    sneaky: bool = False
+
+
 class Use(Tool):
     name = "use"
     description = ("Right-click with the equipped tool on the given side: open/activate blocks, "
@@ -256,5 +269,5 @@ class NeiMachinePlan(Tool):
 
 
 TOOLS = [Move, Turn, InventoryScan, InventoryTransfer, StorageScan, StorageTake, StoragePut, Craft,
-         Equip, Swing, Use, Surroundings, GeoScan, WorldInfo,
+         Equip, Swing, Place, Use, Surroundings, GeoScan, WorldInfo,
          NeiFind, NeiRecipes, NeiRecipe, NeiCraftTree, CraftRecipe, NeiMachinePlan]

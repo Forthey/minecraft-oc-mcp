@@ -185,6 +185,13 @@ function Robot:swing(sideName, sneaky)
   return self:component("robot").swing(self:side(sideName), nil, sneaky)
 end
 
+function Robot:place(sideName, slot, sneaky)
+  local side = self:side(sideName)
+  return self:withSelected(slot, function()
+    return self:component("robot").place(side, nil, sneaky)
+  end)
+end
+
 function Robot:use(sideName, sneaky, duration)
   return self:component("robot").use(self:side(sideName), nil, sneaky, duration)
 end

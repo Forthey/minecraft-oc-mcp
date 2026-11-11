@@ -10,6 +10,7 @@ return {
   "craft_recipe",
   "equip",
   "swing",
+  "place",
   "use",
   "surroundings",
   "geo_scan",
