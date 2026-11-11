@@ -4,5 +4,5 @@ occupied_side: front            # занятая сторона: place туда 
 warehouse_side: front           # с какой стороны от робота склад
 empty_slot: 5                   # пустой слот склада: storage_take из него даёт NO_ITEM
 far_point: [500, 64, 500]       # вне разрешённой зоны: move_to даёт OUT_OF_RANGE
-unknown_item: nomod:nothing     # несуществующий ID: place_at даёт UNKNOWN_ITEM
+unknown_item: nomod:nothing     # несуществующий ID: nei_recipes даёт UNKNOWN_ITEM
 nei_item: cobblestone           # запрос nei_find: ответ ok или NO_PROVIDER

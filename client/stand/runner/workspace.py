@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 
-from stand.config import ROOT, Config
+from stand.config import ROOT, Config, render_real_command
 from stand.runner.agents import AgentCfg
 from stand.scenario import Scenario
 from stand.server.setup import mod_versions
@@ -64,9 +64,11 @@ def mcp_server_spec(python: str, scenario: str, log: str, profile: str | None, r
 
 def _server_spec(run_dir: Path, s: Scenario, cfg: Config, profile: str | None) -> dict:
     if cfg.robot_mcp == "real":
-        cmd = cfg.real.get("command")
-        if cmd:
-            return {"command": cmd[0], "args": list(cmd[1:]), "env": {}}
+        if cfg.real.get("command"):
+            # Агенту виден путь к сценарию в конфиге MCP, поэтому в команду идёт очищенный сценарий.
+            scenario = sanitized_scenario(s, run_dir / "private")
+            cmd = render_real_command(cfg, scenario, run_dir / "action_log.jsonl")
+            return {"command": cmd[0], "args": cmd[1:], "env": {"PYTHONPATH": str(ROOT)}}
         if cfg.real.get("url"):
             return {"url": cfg.real["url"]}
         raise ValueError("robot_mcp is real, set real.command or real.url in stand/config.yaml")

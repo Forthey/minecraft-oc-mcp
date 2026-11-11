@@ -93,6 +93,20 @@ async def _fetch_real_log(cfg: Config) -> list[dict]:
     return env["data"].get("actions", [])
 
 
+def action_log_source(cfg: Config) -> str:
+    """Откуда берётся журнал действий прогона.
+
+    fake: fake-MCP пишет его сам. adapter: real.command с {action_log}, адаптер пишет
+    файл прогона, а новое подключение подняло бы новый адаптер с пустым журналом.
+    get_action_log: сервер команды отдаёт журнал через tool после прогона.
+    """
+    if cfg.robot_mcp != "real":
+        return "fake"
+    if any("{action_log}" in str(a) for a in cfg.real.get("command") or []):
+        return "adapter"
+    return "get_action_log"
+
+
 def fetch_real_action_log(cfg: Config, path: Path) -> str | None:
     """Забирает action log реального сервера. Возвращает текст ошибки или None."""
     try:
@@ -152,7 +166,12 @@ def run_one(
             ws.cleanup()
 
     judge_result = evaluate(cfg, scenario, k, run_dir)
-    if cfg.robot_mcp == "real":
+    source = action_log_source(cfg)
+    if source == "adapter":
+        meta["action_log_source"] = "adapter"
+        if not (run_dir / "action_log.jsonl").exists():
+            meta["action_log_error"] = "adapter did not write action_log.jsonl"
+    elif source == "get_action_log":
         error = fetch_real_action_log(cfg, run_dir / "action_log.jsonl")
         if error:
             meta["action_log_error"] = error

@@ -139,8 +139,11 @@ async def check_out_of_range(session, scene: dict, codes: set[str]) -> CheckResu
 
 
 async def check_unknown_item(session, scene: dict, codes: set[str]) -> CheckResult:
-    x, y, z = scene["far_point"]
-    env = await _call(session, "place_at", {"x": x, "y": y, "z": z, "item": scene["unknown_item"]})
+    # Существует ли предмет, знает только NEI. Без игрока онлайн NEI отвечает NO_PROVIDER,
+    # это не ошибка сервера: доступность NEI проверяет nei_available.
+    env = await _call(session, "nei_recipes", {"item": scene["unknown_item"]})
+    if not env["ok"] and env.get("error_code") == "NO_PROVIDER":
+        return CheckResult("unknown_item", True, "NO_PROVIDER: item check skipped, NEI unavailable")
     return CheckResult("unknown_item", *_expect_code(env, "UNKNOWN_ITEM", codes))
 
 
@@ -200,8 +203,14 @@ async def connect(target: str, cfg: Config, scene: dict | None = None):
     elif cfg.real.get("command"):
         from mcp.client.stdio import StdioServerParameters, stdio_client
 
-        cmd = list(cfg.real["command"])
-        transport = stdio_client(StdioServerParameters(command=cmd[0], args=cmd[1:]))
+        import tempfile
+
+        from stand.config import render_real_command
+
+        log = Path(tempfile.gettempdir()) / "oc-conformance-action_log.jsonl"
+        cmd = render_real_command(cfg, scene["scenario_path"], log)
+        env = dict(os.environ, PYTHONPATH=str(ROOT))
+        transport = stdio_client(StdioServerParameters(command=cmd[0], args=cmd[1:], env=env))
     elif cfg.real.get("url"):
         from mcp.client.streamable_http import streamable_http_client
 

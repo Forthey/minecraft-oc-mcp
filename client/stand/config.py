@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -30,6 +31,8 @@ class Config:
     spawn: tuple[int, int, int]
     spawn_radius: int
     root: Path = field(default=ROOT)
+    # Папка oc-mcp (MCP-сервер робота команды), её запускает адаптер.
+    oc_mcp_dir: Path = field(default=ROOT.parent / "oc-mcp")
 
     @property
     def world_dir(self) -> Path:
@@ -76,4 +79,26 @@ def load_config(path: Path | None = None, root: Path = ROOT) -> Config:
         spawn=tuple(data.get("spawn", [100, 64, 100])),
         spawn_radius=int(data.get("spawn_radius", 96)),
         root=root,
+        oc_mcp_dir=_abs(data.get("oc_mcp_dir", "../oc-mcp"), root).resolve(),
     )
+
+
+def render_real_command(cfg: Config, scenario_path: Path, action_log: Path) -> list[str]:
+    """real.command с подстановками {python}, {oc_mcp_dir}, {scenario}, {action_log}.
+
+    Так в команду адаптера (python -m adapter) попадают путь к oc-mcp, сценарий для
+    карты-оракула и файл журнала действий текущего прогона.
+    """
+    values = {
+        "{python}": sys.executable,
+        "{oc_mcp_dir}": str(cfg.oc_mcp_dir),
+        "{scenario}": str(scenario_path),
+        "{action_log}": str(action_log),
+    }
+    out = []
+    for arg in cfg.real.get("command") or []:
+        arg = str(arg)
+        for key, value in values.items():
+            arg = arg.replace(key, value)
+        out.append(arg)
+    return out

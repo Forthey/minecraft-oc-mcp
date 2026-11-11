@@ -17,8 +17,15 @@ rcon:
   port: 25575
   password: stand-rcon
 
+# Папка oc-mcp (MCP-сервер робота команды). Её запускает адаптер (python -m adapter).
+oc_mcp_dir: ../oc-mcp
+
 # fake: свой MCP стенда, real: MCP-сервер команды (см. секцию real).
 robot_mcp: fake
+# Для oc-mcp команды это адаптер (python -m adapter, см. stand/README.md). Подстановки:
+# {python}, {oc_mcp_dir}, {scenario} (очищенный сценарий прогона), {action_log} (журнал прогона).
+#   command: ["{python}", -m, adapter, --oc-mcp, "{oc_mcp_dir}/bridge/server.py", --world-id, stand,
+#             --map, "stand.adapter_map:oracle", --map-arg, "scenario={scenario}", --log, "{action_log}"]
 real:
   command: null       # список, команда запуска stdio MCP-сервера
   url: null           # или URL streamable HTTP MCP-сервера

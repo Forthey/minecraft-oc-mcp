@@ -99,7 +99,7 @@ def test_unknown_error_code_detected(monkeypatch):
     d = _dispatcher()
     from stand.fake_mcp.envelope import err
 
-    monkeypatch.setattr(d.sim, "place_at", lambda *a, **kw: err("NOT_FOUND", "no such item"))
+    monkeypatch.setattr(d.sim, "nei_recipes", lambda *a, **kw: err("NOT_FOUND", "no such item"))
     results = {r.name: r for r in _run(DispatcherSession(d))}
     assert not results["unknown_item"].ok
     assert "NOT_FOUND" in results["unknown_item"].detail
