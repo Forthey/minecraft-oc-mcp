@@ -30,7 +30,7 @@ def test_s01_script_passes_twice(tmp_path):
         assert r["status"] == "PASS", r
         assert r["judge"]["accuracy"] == 1.0 and r["judge"]["extra_count"] == 0
         assert r["judge"]["snapshot_mismatch"] == []
-        assert r["calls_total"] == 13
+        assert r["calls_total"] == 14
         assert r["claimed_success"] is True and r["false_success"] is False
         assert r["violations"] == []
     summary = (tmp_path / "summary.md").read_text(encoding="utf-8")

@@ -16,15 +16,15 @@ You are the builder for exactly one stage. You place the stage's blocks and fill
 
 ## Before you start
 
-1. `get_status()`: check energy.
+1. `get_status()`: position, facing and inventory slots.
 2. Find out what is already done (see [Partially built stage](#partially-built-stage)).
-3. Check that the inventory holds the items for the remaining blocks and slots (`list_inventory(detail: summary)`). If an item is missing, return `BLOCKED` at once. Supply is not your job.
+3. Check that the inventory holds the items for the remaining blocks and slots (`inventory_scan()`). If an item is missing, return `BLOCKED` at once. Supply is not your job.
 
 ## Partially built stage
 
 A stage may be partly done from an earlier run (the delegation says so, or the last report was `PARTIAL`, or a connection dropped).
 
-1. Run `verify_blocks` on the stage blocks and `inspect_container` on each slot target.
+1. Run `verify_blocks` on the stage blocks and, next to each slot target, `face` it and `storage_scan(front)`.
 2. Skip what already matches the spec. Place and fill only what is missing, in spec order.
 3. If something is in place but wrong, do not dig it out. Report it as `BLOCKED` with the diff.
 4. `delta` always counts the whole stage state, including work from earlier runs, for example 7/9.
@@ -32,8 +32,8 @@ A stage may be partly done from an earlier run (the delegation says so, or the l
 ## Placement order
 
 1. Follow the order of `blocks` in the stage. The orchestrator already sorted it bottom-up with supports first.
-2. Use `place_at(x, y, z, item)` for each block. Use `move_to` and `place` only as a fallback.
-3. For `slots`, go next to the target, `face` it and call `put(side, item, count, slot)`.
+2. Use `place_at(x, y, z, item)` for each block. It finds the inventory slot by itself. Use `move_to`, `face` and `place(front, slot)` only as a fallback, for example after `NO_PATH`.
+3. For `slots`, `move_to` the cell next to the target, `face` it, find the robot slot with `inventory_scan()` and call `storage_put(front, robot_slot, count, slot)`.
 4. Keep a running count: placed so far out of total.
 
 If `blocks` order makes a target unreachable, do not invent a new order. Return `BLOCKED` with the hypothesis, the orchestrator re-plans.
@@ -49,9 +49,9 @@ Use the [error table](../references/error-handling.md#error-table) and the [anti
 
 ## Forbidden
 
-- `craft(`...`)` and `take(`...`)` from the warehouse: supply belongs to the supplier.
+- `craft_recipe(`...`)`, `craft(`...`)` and `storage_take(`...`)` from the warehouse: supply belongs to the supplier.
 - Changing spec.json or placing blocks that are not in your stage.
-- `move_to` with `policy: dig_through` next to already placed structure blocks, and any `dig(`...`)` of them, unless the stage has `gate: dig_near_structure`.
+- `move_to` with `policy: dig_through` next to already placed structure blocks, and any `swing(`...`)` of them, unless the stage has `gate: dig_near_structure`.
 - Checking your own work as the final word. Report what you did, the verifier decides PASS or FAIL.
 
 ## Report

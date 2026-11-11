@@ -31,7 +31,7 @@ async def _roundtrip(tmp_path):
 def test_stdio_roundtrip(tmp_path):
     tools, result = anyio.run(_roundtrip, tmp_path)
     names = {t.name for t in tools.tools}
-    assert len(names) == 27
+    assert len(names) == 28
     place_at = next(t for t in tools.tools if t.name == "place_at")
     assert set(place_at.input_schema["required"]) == {"x", "y", "z", "item"}
     envelope = json.loads(result.content[0].text)

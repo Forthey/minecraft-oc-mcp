@@ -17,7 +17,7 @@ You answer one research question for the orchestrator and write a short note. Yo
 
 1. **Check the cache.** Look for a matching note in `.oc-knowledge/` (by topic slug or a quick grep). If a note exists, has the same versions and has no open conflicts on the question, copy it into `research/` and finish with `status: DONE`.
 2. **Ask sources in priority order**, as set in `research.sources` (default `rag, web, memory`):
-   - **rag**: `search_docs(query, mod, limit)` for mechanics and structures, `search_items` and `get_recipes` for items and recipes. Highest trust, because the index matches the modpack versions.
+   - **rag**: `search_docs(query, mod, limit)` for mechanics and structures, `nei_find` and `nei_recipes` (or `nei_recipe` for one recipe in full) for items and recipes. Highest trust, because the index matches the modpack versions.
    - **web**: your agent's built-in search and fetch tools (WebSearch and WebFetch, or their equivalents). Prefer the official mod wiki, then FTB or Gamepedia wikis, then forum threads and guides. Fetch only the relevant page, extract the facts, drop the rest.
    - **memory**: what you already know. Use it only as a hypothesis to search for. A fact from memory alone is `low`.
 3. **Pin versions.** Everything must match Minecraft 1.7.10 and the mod versions from task.md. IC2 has two branches (Experimental and Classic) that differ a lot. A source for another game version or another branch makes the fact `low`, and you say so in the note.
@@ -47,7 +47,7 @@ Write the actual confidence level in each fact, for example `[conf: medium]`.
 
 - Actionable for building: positions, adjacency, orientation, which slot takes what, how to switch on and off.
 - Safety-relevant facts are always included and marked, for example "reactor explodes when heat exceeds max heat".
-- Recipe facts include the exact item ids from `get_recipes` when available.
+- Recipe facts include the exact item ids from `nei_recipes` when available. Record item ids, never recipe ids: recipe ids are valid only until the robot reboots.
 
 ## Report
 

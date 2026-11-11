@@ -134,10 +134,10 @@ CONTRACT = ROOT / "skills/references/tool-contract.md"
 
 def test_contract_has_all_tools():
     assert contract_tools(CONTRACT) == {
-        "get_status", "inspect", "scan_area", "get_known_map", "move_to", "move", "face",
-        "dig", "place", "place_at", "use", "list_inventory", "inspect_container", "take", "put",
-        "equip", "drop", "craft", "search_items", "get_item", "get_recipes", "plan_materials",
-        "search_docs", "verify_blocks", "read_block_info", "stop", "get_action_log"}
+        "get_status", "world_info", "surroundings", "geo_scan", "move_to", "face", "move", "turn",
+        "place_at", "place", "swing", "use", "inventory_scan", "inventory_transfer", "storage_scan",
+        "storage_take", "storage_put", "equip", "craft_recipe", "craft", "nei_find", "nei_recipes",
+        "nei_recipe", "nei_craft_tree", "nei_machine_plan", "search_docs", "verify_blocks", "get_action_log"}
 
 
 def test_contract_error_codes():
@@ -250,7 +250,7 @@ def test_role_skill_sections(skill, headings):
 
 def test_build_forbids_supply():
     text = section((ROOT / "skills/oc-build/SKILL.md").read_text(), "## Forbidden")
-    assert "`craft(" in text and "`take(" in text
+    assert "`craft_recipe(" in text and "`craft(" in text and "`storage_take(" in text
 
 
 # Task 8: verify
@@ -379,3 +379,16 @@ def test_team_contract_doc_in_sync():
 
 def test_tool_contract_points_to_team_doc():
     assert "docs/mcp-contract.md" in CONTRACT.read_text()
+
+
+def test_supply_recomputes_tree_after_taking():
+    """После storage_take дерево крафта считается заново: склад мог закрыть часть шагов."""
+    text = section((ROOT / "skills/oc-supply/SKILL.md").read_text(), "## Procedure")
+    take = text.index("`storage_take(")
+    assert "`nei_craft_tree(" in text[take:], "nei_craft_tree must be called again after storage_take"
+    assert "64" in text, "craft_recipe runs above 64 per grid slot must be split"
+
+
+def test_design_does_not_expect_free_space_from_status():
+    text = (ROOT / "skills/oc-design/SKILL.md").read_text()
+    assert "where there is free space" not in text

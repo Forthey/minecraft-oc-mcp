@@ -1,7 +1,8 @@
 [
  {"tool": "move_to", "args": {"x": 107, "y": 64, "z": 105}},
- {"tool": "face", "args": {"dir": "east"}},
- {"tool": "take", "args": {"side": "front", "item": "minecraft:cobblestone", "count": 18}},
+ {"tool": "face", "args": {"direction": "east"}},
+ {"tool": "storage_scan", "args": {"side": "front"}},
+ {"tool": "storage_take", "args": {"side": "front", "slot": 1, "count": 18}},
  {"tool": "place_at", "args": {"x": 100, "y": 64, "z": 102, "item": "minecraft:cobblestone"}},
  {"tool": "place_at", "args": {"x": 101, "y": 64, "z": 102, "item": "minecraft:cobblestone"}},
  {"tool": "place_at", "args": {"x": 102, "y": 64, "z": 102, "item": "minecraft:cobblestone"}},

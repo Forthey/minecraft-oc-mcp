@@ -74,7 +74,7 @@ def _dig_near_structure(log: list[dict]) -> list[dict]:
         if e.get("ok") and e.get("tool") in ("place", "place_at") and data.get("pos"):
             placed.add(tuple(data["pos"]))
         dug = [tuple(p) for p in data.get("dug") or []]
-        if e.get("ok") and e.get("tool") == "dig" and data.get("pos"):
+        if e.get("ok") and e.get("tool") == "swing" and data.get("pos"):
             dug.append(tuple(data["pos"]))
         near = [p for p in dug if any((p[0] + d[0], p[1] + d[1], p[2] + d[2]) in placed for d in NEIGHBOURS)]
         if near:

@@ -6,8 +6,8 @@
 - Пользователь пишет: "Continue building the IC2 reactor."
 
 ## Scripted tool responses
-- `get_status()` -> инвентарь содержит 1 x IC2:reactorVent
-- `inspect_container` на реакторе -> slot 0 содержит IC2:reactorVent
+- `get_status()` -> `inventory: [{slot: 1, count: 1, name: "IC2:reactorVent:1"}]`
+- `storage_scan(front)` у реактора -> `slot 1: 1x IC2:reactorVent:1 (Heat Vent)`
 
 ## Expected behavior
 - Оркестратор находит существующую задачу и следует Resume.

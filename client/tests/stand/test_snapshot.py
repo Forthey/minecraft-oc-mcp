@@ -143,5 +143,7 @@ def test_real_template_is_clean_flat_world():
     template = load_config().world_template_dir
     if not (template / "level.dat").exists():
         pytest.skip("world template not created, run python -m stand.server setup")
-    snap = read_snapshot(template, Box((-20, 0, -20), (-1, 80, -1)))
+    # Ниже y=60 лежит камень, и в нём AE2 и Forestry генерируют руды. Регионы сценариев
+    # начинаются с пола (y=63), поэтому проверяется только слой земли и выше.
+    snap = read_snapshot(template, Box((-20, 60, -20), (-1, 80, -1)))
     assert snap.changed() == {}

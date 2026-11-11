@@ -1,8 +1,8 @@
-# Параметры проверок, привязанные к scenario.yaml.
+# Параметры проверок, привязанные к scenario.yaml. Робот стоит вплотную к складу и смотрит на него.
 scenario: scenario.yaml
-occupied: [100, 64, 100]        # занятая клетка: place_at туда должен дать CANT_PLACE
+occupied_side: front            # занятая сторона: place туда должен дать BLOCKED (там сундук склада)
 warehouse_side: front           # с какой стороны от робота склад
-warehouse_item: minecraft:cobblestone
-absent_item: minecraft:planks   # такого предмета на складе нет: take даёт NO_ITEM
+empty_slot: 5                   # пустой слот склада: storage_take из него даёт NO_ITEM
 far_point: [500, 64, 500]       # вне разрешённой зоны: move_to даёт OUT_OF_RANGE
-unknown_item: nomod:nothing     # несуществующий ID: get_item даёт UNKNOWN_ITEM
+unknown_item: nomod:nothing     # несуществующий ID: place_at даёт UNKNOWN_ITEM
+nei_item: cobblestone           # запрос nei_find: ответ ok или NO_PROVIDER

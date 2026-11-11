@@ -109,21 +109,27 @@ async def check_envelope(session, scene: dict, codes: set[str]) -> CheckResult:
     return CheckResult("envelope_shape", True, f"get_status pos {pos}, facing {data['facing']}")
 
 
-async def check_cant_place(session, scene: dict, codes: set[str]) -> CheckResult:
+async def check_blocked_on_occupied(session, scene: dict, codes: set[str]) -> CheckResult:
     # Сначала берём предмет со склада, иначе сервер может законно ответить NO_ITEM.
-    took = await _call(session, "take", {"side": scene["warehouse_side"], "item": scene["warehouse_item"], "count": 1})
+    side = scene["warehouse_side"]
+    took = await _call(session, "storage_take", {"side": side, "slot": 1, "count": 1})
     if not took["ok"]:
-        return CheckResult("cant_place_on_occupied", False,
-                           f"setup failed: take {scene['warehouse_item']} returned {took.get('error_code')}")
-    x, y, z = scene["occupied"]
-    env = await _call(session, "place_at", {"x": x, "y": y, "z": z, "item": scene["warehouse_item"]})
-    passed, detail = _expect_code(env, "CANT_PLACE", codes)
-    return CheckResult("cant_place_on_occupied", passed, detail)
+        return CheckResult("blocked_on_occupied", False,
+                           f"setup failed: storage_take slot 1 returned {took.get('error_code')}")
+    slot = None
+    inv = await _call(session, "inventory_scan", {})
+    for entry in inv["data"].get("slots", []):
+        slot = entry.get("slot")
+        break
+    if slot is None:
+        return CheckResult("blocked_on_occupied", False, "setup failed: inventory_scan shows no slots after storage_take")
+    env = await _call(session, "place", {"side": scene["occupied_side"], "slot": slot})
+    return CheckResult("blocked_on_occupied", *_expect_code(env, "BLOCKED", codes))
 
 
 async def check_no_item(session, scene: dict, codes: set[str]) -> CheckResult:
-    env = await _call(session, "take", {"side": scene["warehouse_side"], "item": scene["absent_item"], "count": 1})
-    return CheckResult("no_item_on_take", *_expect_code(env, "NO_ITEM", codes))
+    env = await _call(session, "storage_take", {"side": scene["warehouse_side"], "slot": scene["empty_slot"], "count": 1})
+    return CheckResult("no_item_on_empty_slot", *_expect_code(env, "NO_ITEM", codes))
 
 
 async def check_out_of_range(session, scene: dict, codes: set[str]) -> CheckResult:
@@ -133,17 +139,26 @@ async def check_out_of_range(session, scene: dict, codes: set[str]) -> CheckResu
 
 
 async def check_unknown_item(session, scene: dict, codes: set[str]) -> CheckResult:
-    env = await _call(session, "get_item", {"id": scene["unknown_item"]})
+    x, y, z = scene["far_point"]
+    env = await _call(session, "place_at", {"x": x, "y": y, "z": z, "item": scene["unknown_item"]})
     return CheckResult("unknown_item", *_expect_code(env, "UNKNOWN_ITEM", codes))
+
+
+async def check_nei_available(session, scene: dict, codes: set[str]) -> CheckResult:
+    env = await _call(session, "nei_find", {"text": scene["nei_item"]})
+    if env["ok"]:
+        return CheckResult("nei_available", True, f"nei_find returned {len(env['data'].get('items', []))} items")
+    return CheckResult("nei_available", *_expect_code(env, "NO_PROVIDER", codes))
 
 
 CHECKS = [
     ("tools_match_contract", check_tools),
     ("envelope_shape", check_envelope),
-    ("cant_place_on_occupied", check_cant_place),
-    ("no_item_on_take", check_no_item),
+    ("blocked_on_occupied", check_blocked_on_occupied),
+    ("no_item_on_empty_slot", check_no_item),
     ("out_of_range", check_out_of_range),
     ("unknown_item", check_unknown_item),
+    ("nei_available", check_nei_available),
 ]
 
 

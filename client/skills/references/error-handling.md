@@ -8,20 +8,21 @@ Every role follows this file. Budget names refer to keys in [config.md](config.m
 
 | Code | First | Second | Then |
 |---|---|---|---|
-| `BLOCKED` | `inspect` the side to learn what is there | Change approach: other side, other approach position, or reorder placement if your own block is in the way | Return `BLOCKED` with what you saw |
+| `BLOCKED` | `surroundings` to learn what is next to the robot | Change approach: other side, other approach position, or reorder placement if your own block is in the way | Return `BLOCKED` with what you saw |
 | `NO_PATH` | Pick another approach position next to the target, still with `policy: avoid` | Retry `move_to` with `policy: dig_through` only if no placed structure block, warehouse or machine is near the path, or the stage has gate `dig_near_structure`. Otherwise skip this reaction | Return `BLOCKED` with a hypothesis, for example "target enclosed by own blocks" |
 | `OUT_OF_RANGE` | `get_status` and check the target coordinates for a typo or wrong origin | none | Return `BLOCKED` |
-| `NO_ITEM` | `list_inventory` to confirm | Builder and verifier: return `BLOCKED`, supply is not your job. Supplier: check the warehouse with `inspect_container` | Return `PARTIAL` with the missing items |
-| `INVENTORY_FULL` | Supplier: split the transfer into several trips. Builder: `put` unused items back into the warehouse | none | Return `BLOCKED` |
+| `NO_ITEM` | `inventory_scan` to confirm | Builder and verifier: return `BLOCKED`, supply is not your job. Supplier: check the warehouse with `storage_scan` | Return `PARTIAL` with the missing items |
+| `INVENTORY_FULL` | Supplier: split the transfer into several trips. Builder: `storage_put` unused items back into the warehouse | none | Return `BLOCKED` |
 | `NO_ENERGY` | Stop all actions | none | Return `BLOCKED`. The orchestrator asks the user to charge the robot |
-| `TOOL_BROKEN` | `equip` a spare tool if the inventory has one | none | Return `BLOCKED` with the tool name |
-| `CANT_PLACE` | `inspect` the target and its neighbors, check that a support block exists | Place the supporting block first if it is in the spec, otherwise change the approach side | Return `BLOCKED` |
-| `UNKNOWN_ITEM` | `search_items` for the right id | Use the id from the search result once | Return `FAILED`: the spec or BOM has a wrong id |
-| `NO_RECIPE` | `get_recipes` with an alternative name from `search_items` | none | Return `PARTIAL`. The orchestrator treats the item as missing |
+| `TOOL_BROKEN` | `equip` the slot of a spare or more suitable tool if the inventory has one | none | Return `BLOCKED` with the tool name |
+| `CANT_PLACE` | `surroundings` next to the target, check that it is free and that a support block exists | Place the supporting block first if it is in the spec, otherwise change the approach side | Return `BLOCKED` |
+| `UNKNOWN_ITEM` | `nei_find` for the right id | Use the id from the search result once | Return `FAILED`: the spec or BOM has a wrong id |
+| `NO_RECIPE` | `nei_recipes` again for a fresh recipe id, or with an alternative item from `nei_find` | none | Return `PARTIAL`. The orchestrator treats the item as missing |
 | `TIMEOUT` | `get_status` to see whether the action happened | Repeat once only if the state shows it did not happen | Return `BLOCKED` |
 | `CONNECTION_LOST` | Do not repeat the action. Call `get_status` and compare position and inventory with the journal and your last report | Continue from the real state, not from the assumed one | If `get_status` keeps failing, return `BLOCKED` |
 | `UNSUPPORTED` | Do not retry. Note the tool and the missing component from the message | none | Return `BLOCKED` with the tool and the component. The orchestrator tells the user which upgrade the robot needs |
 | `NO_PROVIDER` | Do not retry right away. If your role has another knowledge source (researcher: `search_docs` or the web), use it | none | Return `BLOCKED` with "recipe data unavailable". The orchestrator asks the user to join the game with NEI |
+| `UNKNOWN` | Do not retry. Quote the message | none | Return `BLOCKED` with the message |
 
 ## Anti-loop rules
 

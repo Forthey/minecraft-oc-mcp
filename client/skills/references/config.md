@@ -9,8 +9,8 @@ The orchestrator reads `oc-harness.yaml` from the project root before anything e
 | `versions.minecraft` | string | `1.7.10` | Game version. Research must match it |
 | `versions.ic2` | string | none | IC2 version in the modpack. If unset, ask the user before research |
 | `versions.opencomputers` | string | none | OpenComputers version. Same rule as `ic2` |
-| `warehouse.pos` | `[x, y, z]` | from `get_status()` | Position of the warehouse chest |
-| `warehouse.side` | string | `north` | Side of the chest the robot should face |
+| `warehouse.pos` | `[x, y, z]` | none | Position of the warehouse chest. The robot tools do not report it. If the key is missing, ask the user |
+| `warehouse.side` | string | `north` | Side of the chest the robot stands at, then it faces the chest with `face` |
 | `autonomy` | string | `confirm-phases` | How often to ask the user, see below |
 | `budgets.step_attempts` | int | `3` | Attempts of one step inside a subagent |
 | `budgets.stage_redelegations` | int | `2` | How many times the orchestrator re-runs one stage |

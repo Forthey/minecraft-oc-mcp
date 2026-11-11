@@ -101,7 +101,7 @@
       "type": "object", "additionalProperties": false,
       "properties": {"items": {"type": "array"}, "recipes": {"type": "array"}, "docs": {"type": "array"}}
     },
-    "profile": {"enum": ["full", "no-vision", "no-docs"]},
+    "profile": {"enum": ["full", "no-vision", "no-docs", "no-nei"]},
     "faults": {"type": "array", "items": {
       "type": "object", "required": ["tool", "call", "error", "effect"], "additionalProperties": false,
       "properties": {
@@ -109,7 +109,7 @@
         "call": {"type": "integer", "minimum": 1},
         "error": {"enum": ["BLOCKED", "NO_PATH", "OUT_OF_RANGE", "NO_ITEM", "INVENTORY_FULL", "NO_ENERGY",
                             "TOOL_BROKEN", "CANT_PLACE", "UNKNOWN_ITEM", "NO_RECIPE", "TIMEOUT", "CONNECTION_LOST",
-                            "UNSUPPORTED", "NO_PROVIDER"]},
+                            "UNSUPPORTED", "NO_PROVIDER", "UNKNOWN"]},
         "effect": {"enum": ["applied", "skipped"]}
       }}},
     "requires": {"type": "array", "items": {"enum": ["fake"]}},

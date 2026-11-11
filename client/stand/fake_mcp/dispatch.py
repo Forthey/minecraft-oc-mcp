@@ -15,15 +15,19 @@ from stand.fake_mcp.action_log import ActionLog
 from stand.fake_mcp.envelope import err, ok
 from stand.fake_mcp.profiles import PROFILES
 
-SIDE = {"type": "string", "enum": ["front", "back", "left", "right", "up", "down"]}
+SIDE3 = {"type": "string", "enum": ["front", "up", "down"]}
 DIR4 = {"type": "string", "enum": ["north", "south", "east", "west"]}
 DIR6 = {"type": "string", "enum": ["north", "south", "east", "west", "up", "down"]}
-ITEM = {"type": "string", "description": "Item id: mod:name or mod:name:meta"}
+ITEM = {"type": "string", "description": "Item id: mod:name:damage or mod:name"}
+TEXT = {"type": "string"}
 INT = {"type": "integer"}
-COUNT = {"type": "integer", "minimum": 1}
+SLOT = {"type": "integer", "minimum": 1}
+COUNT = {"type": "integer", "minimum": 1, "maximum": 64}
 POS = {"type": "array", "items": {"type": "integer"}, "minItems": 3, "maxItems": 3}
-BOX = {"type": "object", "required": ["from", "to"], "properties": {"from": POS, "to": POS}}
-DETAIL = {"type": "string", "enum": ["summary", "full"]}
+BOOL = {"type": "boolean"}
+OFFSET = {"type": "integer", "minimum": -32, "maximum": 32}
+SIZE = {"type": "integer", "minimum": 1, "maximum": 64}
+LIMIT = {"type": "integer", "minimum": 1, "maximum": 50}
 
 
 def _obj(required: list[str], **props) -> dict:
@@ -38,51 +42,70 @@ class ToolSpec:
     description: str
     schema: dict
 
-
 TOOL_SPECS: dict[str, ToolSpec] = {
-    "get_status": ToolSpec("state", "Position, facing, energy, tool durability, inventory summary (used slots, top items), warehouse position.", _obj([])),
-    "inspect": ToolSpec("state", "Name and metadata of the adjacent block on side.", _obj(["side"], side=SIDE)),
-    "scan_area": ToolSpec("state", "Summary of a region: air, solid, liquid, known blocks. detail=full lists blocks page by page.",
-                          _obj(["box"], box=BOX, detail=DETAIL, page=INT)),
-    "get_known_map": ToolSpec("state", "What the robot already remembers about a region, without scanning.", _obj(["box"], box=BOX, page=INT)),
-    "move_to": ToolSpec("movement", "Pathfinding move. policy is avoid (never break blocks) or dig_through (break blocks in the way).",
+    # Состояние
+    "get_status": ToolSpec("state", "Position, facing and inventory slots of the robot.", _obj([])),
+    "world_info": ToolSpec("state", "Robot id and name, world id, position and facing.", _obj([])),
+    "surroundings": ToolSpec("state", "The six blocks next to the robot, relative to its facing.", _obj([])),
+    "geo_scan": ToolSpec("state", "Hardness of a box around the robot, axes x = right, z = forward, y = up. width*depth*height <= 64.",
+                         _obj([], x=OFFSET, z=OFFSET, y=OFFSET, width=SIZE, depth=SIZE, height=SIZE)),
+    # Движение
+    "move_to": ToolSpec("movement", "Pathfinding move to a world position. policy: avoid or dig_through.",
                         _obj(["x", "y", "z"], x=INT, y=INT, z=INT, policy={"type": "string", "enum": ["avoid", "dig_through"]})),
-    "move": ToolSpec("movement", "Low-level move n blocks in dir (forward, back, up, down). Fallback only.",
-                     _obj(["dir"], dir={"type": "string", "enum": ["forward", "back", "up", "down"]}, n=COUNT)),
-    "face": ToolSpec("movement", "Turn to north, south, east or west.", _obj(["dir"], dir=DIR4)),
-    "dig": ToolSpec("world", "Break the block on side.", _obj(["side"], side=SIDE)),
-    "place": ToolSpec("world", "Place item from inventory on side.", _obj(["item", "side"], item=ITEM, side=SIDE)),
-    "place_at": ToolSpec("world", "Move next to the target and place item there. from optionally sets the side to approach from.",
+    "face": ToolSpec("movement", "Turn to north, south, east or west.", _obj(["direction"], direction=DIR4)),
+    "move": ToolSpec("movement", "Move n blocks forward, back, up or down, stops at the first obstacle.",
+                     _obj(["direction"], direction={"type": "string", "enum": ["forward", "back", "up", "down"]}, n=COUNT)),
+    "turn": ToolSpec("movement", "Turn left, right or around.",
+                     _obj(["direction"], direction={"type": "string", "enum": ["left", "right", "around"]})),
+    # Мир
+    "place_at": ToolSpec("world", "Move next to the target and place item there. from sets the approach side.",
                          _obj(["x", "y", "z", "item"], x=INT, y=INT, z=INT, item=ITEM, **{"from": DIR6})),
-    "use": ToolSpec("world", "Right-click the block on side, optionally holding item.", _obj(["side"], side=SIDE, item=ITEM)),
-    "list_inventory": ToolSpec("inventory", "Robot inventory. detail is summary or full.", _obj([], detail=DETAIL)),
-    "inspect_container": ToolSpec("inventory", "Contents of the chest or machine on side, slot by slot.", _obj(["side"], side=SIDE)),
-    "take": ToolSpec("inventory", "Take items from the container on side.",
-                     _obj(["side", "item", "count"], side=SIDE, item=ITEM, count=COUNT, slot=INT)),
-    "put": ToolSpec("inventory", "Put items into the container on side, optionally into a specific machine slot.",
-                    _obj(["side", "item", "count"], side=SIDE, item=ITEM, count=COUNT, slot=INT)),
-    "equip": ToolSpec("inventory", "Equip a tool.", _obj(["item"], item=ITEM)),
-    "drop": ToolSpec("inventory", "Drop items in front of the robot.", _obj(["item", "count"], item=ITEM, count=COUNT)),
-    "craft": ToolSpec("crafting", "Craft with the crafting upgrade. The tool arranges the 3x3 grid by itself.",
-                      _obj(["item", "count"], item=ITEM, count=COUNT)),
-    "search_items": ToolSpec("knowledge", "Search the item index (RAG).", _obj(["query"], query={"type": "string"}, limit=COUNT)),
-    "get_item": ToolSpec("knowledge", "Item card: name, id, mod, short description.", _obj(["id"], id=ITEM)),
-    "get_recipes": ToolSpec("knowledge", "Crafting table and machine recipes (NEI dump).", _obj(["item"], item=ITEM)),
-    "plan_materials": ToolSpec("knowledge", "Crafting tree and what is still missing, counting the robot inventory and the warehouse when use_inventory is true.",
-                               _obj(["item", "count"], item=ITEM, count=COUNT, use_inventory={"type": "boolean"})),
-    "search_docs": ToolSpec("knowledge", "Search mod documentation about mechanics, multiblocks and machine setup (RAG).",
-                            _obj(["query"], query={"type": "string"}, mod={"type": "string"}, limit=COUNT)),
-    "verify_blocks": ToolSpec("verification", "Compare a list [{pos, item}] with the world. Returns a compact diff missing / wrong.",
+    "place": ToolSpec("world", "Place the block from a robot slot on side.", _obj([], side=SIDE3, slot=SLOT, sneaky=BOOL)),
+    "swing": ToolSpec("world", "Break the block on side with the equipped tool, drops go to the inventory.",
+                      _obj([], side=SIDE3, sneaky=BOOL)),
+    "use": ToolSpec("world", "Right-click on side with the equipped tool.",
+                    _obj([], side=SIDE3, sneaky=BOOL, duration={"type": "number", "minimum": 0, "maximum": 30})),
+    # Инвентарь
+    "inventory_scan": ToolSpec("inventory", "Non-empty robot slots.", _obj([])),
+    "inventory_transfer": ToolSpec("inventory", "Move items between robot slots. A slot with another item is refused.",
+                                   _obj(["from_slot", "to_slot"], from_slot=SLOT, to_slot=SLOT, count=COUNT)),
+    "storage_scan": ToolSpec("inventory", "Non-empty slots of the chest or machine on side and its block id.", _obj([], side=SIDE3)),
+    "storage_take": ToolSpec("inventory", "Take items from a slot of the storage on side.",
+                             _obj(["side", "slot"], side=SIDE3, slot=SLOT, count=COUNT, robot_slot=SLOT)),
+    "storage_put": ToolSpec("inventory", "Put items from a robot slot into the storage on side.",
+                            _obj(["side", "robot_slot"], side=SIDE3, robot_slot=SLOT, count=COUNT, slot=SLOT)),
+    "equip": ToolSpec("inventory", "Swap a robot slot with the tool slot.", _obj(["slot"], slot=SLOT)),
+    # Крафт
+    "craft_recipe": ToolSpec("crafting", "Craft a crafting-table recipe by its NEI recipe id, the grid is laid out automatically.",
+                             _obj(["recipe"], recipe=TEXT, count=COUNT)),
+    "craft": ToolSpec("crafting", "Low-level: craft what is laid out in grid slots 1,2,3 / 5,6,7 / 9,10,11.",
+                      _obj([], count=COUNT, result_slot=SLOT)),
+    # Знания
+    "nei_find": ToolSpec("knowledge", "Find items by name, returns item ids with labels.",
+                         _obj(["text"], text=TEXT, limit=LIMIT, lang=TEXT)),
+    "nei_recipes": ToolSpec("knowledge", "All recipes that make the item, or with usages the recipes that use it.",
+                            _obj(["item"], item=ITEM, usages=BOOL, category=TEXT, limit=LIMIT, cursor=TEXT, lang=TEXT)),
+    "nei_recipe": ToolSpec("knowledge", "One recipe in full, with the robot slot for every grid cell.",
+                           _obj(["recipe"], recipe=TEXT, lang=TEXT)),
+    "nei_craft_tree": ToolSpec("knowledge", "Whole crafting tree: steps in order, raw materials, machines needed.",
+                               _obj(["item"], item=ITEM, count={"type": "integer", "minimum": 1}, use_inventory=BOOL, lang=TEXT)),
+    "nei_machine_plan": ToolSpec("knowledge", "Slots of the machine on side for the ingredients and the result of a recipe.",
+                                 _obj(["recipe"], side=SIDE3, recipe=TEXT, times={"type": "integer", "minimum": 1}, lang=TEXT)),
+    "search_docs": ToolSpec("knowledge", "Search mod documentation about mechanics, multiblocks and machine setup.",
+                            _obj(["query"], query=TEXT, mod=TEXT, limit=LIMIT)),
+    # Проверка
+    "verify_blocks": ToolSpec("verification", "Compare a list [{pos, item}] with the world. Returns missing / wrong, 50 per page.",
                               _obj(["expected"], expected={"type": "array", "items": {
                                   "type": "object", "required": ["pos", "item"], "properties": {"pos": POS, "item": ITEM}}},
                                   page=INT)),
-    "read_block_info": ToolSpec("verification", "State of the machine on side: energy, heat, active flag, slots.", _obj(["side"], side=SIDE)),
-    "stop": ToolSpec("service", "Abort the current robot action.", _obj([])),
-    "get_action_log": ToolSpec("service", "Last last_n robot actions with results.", _obj([], last_n=COUNT)),
+    # Служебные
+    "get_action_log": ToolSpec("service", "Last last_n robot actions with results.", _obj([], last_n={"type": "integer", "minimum": 1})),
 }
-
 # Имена аргументов контракта, которые совпадают с ключевыми словами Python.
 ARG_RENAMES = {"from": "from_"}
+
+# Ответ OC NEI Bridge без игрока онлайн и без кэша (профиль no-nei).
+NO_PROVIDER_MESSAGE = "NO_PROVIDER: no player with the mod is online and the answer is not cached"
 
 FAULT_MESSAGES = {
     "CONNECTION_LOST": "connection to the robot was lost, the action may or may not have happened",
@@ -97,7 +120,8 @@ class Dispatcher:
         if profile not in PROFILES:
             raise ValueError(f"unknown profile {profile}")
         self.sim = sim
-        self.disabled = PROFILES[profile]
+        self.disabled = PROFILES[profile]["disabled"]
+        self.no_provider = PROFILES[profile]["no_provider"]
         self.faults = list(faults)
         self.log = log
         self.calls: dict[str, int] = {}
@@ -127,6 +151,8 @@ class Dispatcher:
         fault = next((f for f in self.faults if f["tool"] == name and f["call"] == n), None)
         if fault is not None and fault["effect"] == "skipped":
             return self._fault_env(fault), True
+        if name in self.no_provider:
+            return err("NO_PROVIDER", NO_PROVIDER_MESSAGE), False
         env = self._invoke(name, args)
         if fault is not None:
             return self._fault_env(fault), True

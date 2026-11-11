@@ -1,12 +1,12 @@
-# MCP-контракт робота OpenComputers (черновик)
+# MCP-контракт робота OpenComputers (v2)
 
-Статус: черновик, с командой не согласован. Дата: 2026-11-10.
+Статус: v2, база `oc-mcp`. Дата: 2026-11-11.
 
-Документ описывает, какие MCP-tools агент ожидает от сервера робота. Это предложение к пунктам 2-4 из TASK.md (pathfinding, RAG, транспорт) и к пункту 1 (дамп рецептов NEI).
+Документ описывает, какие MCP-tools ожидает агент. Основа это tools `oc-mcp`, MCP-сервера робота команды (пункт 4 из TASK.md). Сверху наши добавки в мировых координатах, их даёт адаптер поверх `oc-mcp`. Нюансы переезда и вопросы к команде собраны в [real-mcp-notes.md](real-mcp-notes.md), дизайн v2 в `docs/superpowers/specs/2026-11-11-contract-v2-design.md`.
 
 ## Связь со скиллами
 
-Контракт уже используется. Скиллы агента в `skills/` вызывают tools по именам из этого документа, а реакции на ошибки завязаны на коды ошибок отсюда.
+Скиллы агента в `skills/` вызывают tools по именам из этого документа, а реакции на ошибки завязаны на коды ошибок отсюда.
 
 Источник правды для скиллов: `skills/references/tool-contract.md` (английский, его читает агент). Этот документ его русская версия для команды с примерами и открытыми вопросами.
 
@@ -16,192 +16,167 @@
 2. Изменить этот документ.
 3. Если менялся список кодов ошибок, обновить `ALL_ERROR_CODES` в `tools/validate_skills.py` и таблицу в `skills/references/error-handling.md`.
 4. Поправить скиллы, которые используют изменённый tool (таблица ниже).
-5. Поправить fake-MCP стенда: `TOOL_SPECS` в `stand/fake_mcp/dispatch.py` (описание и схема аргументов) и метод в `stand/fake_mcp/sim.py`. Тест `test_tool_specs_match_contract` падает, если набор tools fake-MCP расходится с контрактом.
+5. Поправить fake-MCP стенда: `TOOL_SPECS` в `stand/fake_mcp/dispatch.py` (описание и схема аргументов) и метод в `stand/fake_mcp/sim.py` (tools `oc-mcp`) или `stand/fake_mcp/additions.py` (добавки). Тест `test_tool_specs_match_contract` падает, если набор tools fake-MCP расходится с контрактом.
 6. Запустить `.venv/bin/pytest -q` и `.venv/bin/python tools/validate_skills.py`. Тест `test_team_contract_doc_in_sync` падает, если набор tools здесь и в `tool-contract.md` расходится. Валидатор падает, если скилл ссылается на tool или код ошибки, которого нет в контракте.
 7. Прогнать `python -m stand.conformance --mcp fake`, а если реальный сервер уже есть, то и `--mcp real`.
 
 ### Где используются tools
 
+Таблица обновляется вместе со скиллами.
+
 | Tool | Упоминается в |
 |---|---|
 | `get_status` | oc-orchestrator, oc-design, oc-build, error-handling |
-| `inspect` | error-handling |
-| `scan_area`, `get_known_map`, `move`, `drop`, `get_action_log` | пока нигде, оставлены в контракте как запасные |
-| `move_to` | oc-build, oc-supply, error-handling |
+| `surroundings` | error-handling |
+| `move_to` | oc-build, oc-supply, oc-verify, error-handling |
 | `face` | oc-build, oc-supply, oc-verify |
-| `dig` | oc-build (как запрещённое действие) |
-| `place`, `place_at` | oc-build |
-| `use` | oc-verify |
-| `list_inventory` | oc-build, oc-supply, error-handling |
-| `inspect_container` | oc-supply, oc-build, oc-verify, error-handling |
-| `take`, `put` | oc-supply, oc-build, oc-verify, error-handling |
+| `place_at` | oc-build |
+| `place` | oc-build (запасной путь) |
+| `swing` | oc-build (как запрещённое действие), oc-verify (`emergency_off`) |
+| `use` | oc-design, oc-verify |
+| `inventory_scan` | oc-build, oc-supply, error-handling |
+| `storage_scan` | oc-design, oc-build, oc-supply, oc-verify, error-handling |
+| `storage_take`, `storage_put` | oc-supply, oc-verify, oc-build (`storage_take` как запрещённое действие), error-handling |
 | `equip` | error-handling |
-| `craft` | oc-supply, oc-build (как запрещённое действие) |
-| `search_items`, `get_recipes` | oc-orchestrator, oc-research, error-handling |
-| `get_item` | oc-orchestrator |
-| `plan_materials` | oc-orchestrator, oc-supply |
-| `search_docs` | oc-orchestrator, oc-research |
+| `craft_recipe`, `craft` | oc-supply, oc-build (как запрещённое действие) |
+| `nei_find`, `nei_recipes`, `nei_recipe` | oc-orchestrator, oc-research, error-handling |
+| `nei_craft_tree` | oc-orchestrator, oc-supply |
+| `nei_machine_plan` | oc-supply |
+| `search_docs` | oc-orchestrator, oc-research, error-handling |
 | `verify_blocks` | oc-design, oc-build, oc-verify |
-| `read_block_info` | oc-verify |
-| `stop` | oc-orchestrator, oc-verify |
-
-Таблицу можно пересобрать командой `grep -lw '`<tool>' skills/*/SKILL.md skills/references/*.md`.
+| `move`, `turn`, `world_info`, `geo_scan`, `inventory_transfer`, `get_action_log` | пока нигде, оставлены как запасные и для стенда |
 
 ## Соглашения
 
-- **Координаты** абсолютные: `[x, y, z]` в мире. В spec.json агента позиции относительные к `origin`, но в вызовы tools всегда попадают абсолютные.
-- **Направление** робота `facing`: `north | south | east | west`.
-- **Сторона** действия `side`: `front | up | down`. Значения `back | left | right` допустимы, если tool сам разворачивает робота.
-- **ID предметов** в формате `mod:name` или `mod:name:meta`, как в дампе NEI, например `IC2:blockGenerator:5`, `minecraft:cobblestone`.
-- **Компактный вывод.** Большие результаты по умолчанию отдаются сводкой. Детали запрашиваются через `detail: "full"`, `limit`, `page`. Это главное средство против засорения контекста агента, поэтому сводка по умолчанию обязательна.
-- **Высокоуровневые действия.** `move_to` и `place_at` должны сами прокладывать путь. Агент не должен вести робота поблочно.
+- **Два уровня.** Tools `oc-mcp` работают относительно робота: сторона `side` это `front | up | down`, слоты робота с 1, сетка крафта в слотах робота `1,2,3 / 5,6,7 / 9,10,11`. Добавки работают в мировых координатах `[x, y, z]` и с абсолютными направлениями `north | south | east | west`.
+- **ID предметов** в форме NEI `mod:name:damage`, например `minecraft:cobblestone:0`, `IC2:blockMachine:3`. Добавки принимают и `mod:name`, это damage 0.
+- **ID рецептов** вида `r7fbebd0471463308` живут только до перезагрузки робота, их нельзя хранить в планах.
+- **Высокоуровневые действия.** `move_to`, `place_at` и `verify_blocks` сами прокладывают путь и обходят клетки. Агент не ведёт робота поблочно, `move` и `turn` только запасной путь.
 
 ## Формат ответа
 
-Каждый tool возвращает один и тот же конверт:
+Каждый tool возвращает конверт обычным результатом MCP:
 
 ```json
-{"ok": true, "message": "placed", "data": {}}
+{"ok": true, "message": "Placed from slot 1 front: minecraft:cobblestone. 8 left in slot 1.", "data": {"pos": [100, 64, 100], "slot": 1}}
 ```
 
 ```json
-{"ok": false, "error_code": "NO_PATH", "message": "no route to [15,64,3] with policy avoid", "data": {"from": [12,64,5]}}
+{"ok": false, "error_code": "BLOCKED", "message": "moved 2 of 3 blocks forward, blocked: solid", "data": {"pos": [100, 64, 103], "moved": 2}}
 ```
 
 - `ok`: выполнилось ли действие.
 - `error_code`: только при `ok: false`, один из кодов из раздела "Коды ошибок".
-- `message`: короткий текст для человека, одна строка.
-- `data`: результат, всегда объект. Структура зависит от tool, примеры ниже. Если результат по смыслу список (предметы, рецепты, документы, действия), он лежит в поле объекта: `{"items": [...]}`, `{"recipes": [...]}`, `{"docs": [...]}`, `{"actions": [...]}`.
+- `message`: для tools `oc-mcp` их текст дословно, для добавок короткий текст в том же стиле.
+- `data`: всегда объект. У `nei_*` и `world_info` это их JSON, у `inventory_scan` и `storage_scan` список слотов `{"slots": [{"slot", "count", "name", "label"}]}`, у добавок своя структура (ниже).
+
+Сам `oc-mcp` отвечает текстом, а ошибки отдаёт как JSON-RPC error. Конверт и коды ошибок добавляет наш адаптер.
 
 ## Tools
 
-Пометка "(проверить)" означает допущение о возможностях робота, которое нужно подтвердить.
+Пометка (oc-mcp) значит, что tool берётся из `oc-mcp` как есть, (добавка) что его даёт адаптер.
 
 ### Состояние
 
-**`get_status()`**
-
-Позиция, направление, энергия, инструмент, сводка инвентаря, позиция склада.
+**`get_status()`** (добавка)
 
 ```json
-{"pos": [10,64,10], "facing": "north", "energy": 0.9, "tool": {"item": "minecraft:diamond_pickaxe", "durability": 0.7},
- "inventory": {"used": 3, "total": 16, "top": [{"item": "minecraft:cobblestone", "count": 9}]},
- "warehouse": {"pos": [0,64,0], "side": "north"}}
+{"pos": [100, 64, 105], "facing": "north", "inventory": [{"slot": 1, "count": 9, "name": "minecraft:cobblestone:0"}]}
 ```
 
-**`inspect(side)`**
+Склада здесь нет: агент берёт его из `oc-harness.yaml` (`warehouse: {pos, side}`).
 
-Блок рядом с роботом: `{"item": "IC2:blockGenerator:5", "name": "Nuclear Reactor"}` или `{"item": "minecraft:air"}`.
+**`world_info()`** (oc-mcp): id и имя робота, `world_id`, с navigation upgrade позиция и направление.
 
-**`scan_area(box, detail)`**
+**`surroundings()`** (oc-mcp): шесть соседних блоков относительно направления робота, строками `front: minecraft:stone (solid)`.
 
-Сводка по области. `box`: `{"from": [x,y,z], "to": [x,y,z]}`, `detail`: `summary | full`. В `summary` только счётчики (воздух, твёрдое, жидкость, известные блоки). В `full` список блоков постранично. Дальние блоки без точных ID, потому что geolyzer отдаёт только твёрдость (проверить).
+**`geo_scan(x, z, y, width, depth, height)`** (oc-mcp): твёрдость блоков бокса в осях робота (x вправо, z вперёд, y вверх), без имён, объём до 64 блоков.
 
-**`get_known_map(box)`**
+### Движение
 
-То, что робот уже помнит о регионе, без сканирования. Формат как у `scan_area` с `detail: full`.
+**`move_to(x, y, z, policy)`** (добавка)
 
-### Движение (пункт 2)
+Перемещение с поиском пути. `policy`: `avoid` (ничего не ломать) или `dig_through` (ломать блоки на пути). Ответ `{"pos": [..], "steps": 14, "dug": []}`. Ошибки: `NO_PATH`, `BLOCKED`, `OUT_OF_RANGE`, `NO_ENERGY`.
 
-**`move_to(x, y, z, policy)`**
+**`face(direction)`** (добавка): повернуться на `north | south | east | west`.
 
-Перемещение с поиском пути. `policy`: `avoid` (ничего не ломать) или `dig_through` (ломать блоки на пути). Ответ: `{"pos": [..], "steps": 14}`. Ошибки: `NO_PATH`, `BLOCKED`, `OUT_OF_RANGE`, `NO_ENERGY`.
+**`move(direction, n)`** (oc-mcp): `n` блоков `forward | back | up | down`, остановка у первого препятствия.
 
-**`move(dir, n)`**, **`face(dir)`**
-
-Низкоуровневое движение на `n` блоков (`forward | back | up | down`) и поворот. Запасной вариант.
+**`turn(direction)`** (oc-mcp): `left | right | around`.
 
 ### Мир
 
-**`dig(side)`**: сломать блок.
+**`place_at(x, y, z, item, from)`** (добавка)
 
-**`place(item, side)`**: поставить блок из инвентаря рядом.
+Подъехать и поставить блок в точку. Слот с предметом находит сам. `from` задаёт сторону подхода. Ответ `{"pos": [..], "slot": 1}`. Ошибки: `NO_PATH`, `CANT_PLACE`, `NO_ITEM`, `UNKNOWN_ITEM`.
 
-**`place_at(x, y, z, item, from?)`**
+**`place(side, slot, sneaky)`** (oc-mcp): поставить блок из слота на сторону.
 
-Подъехать и поставить блок в точку. `from` задаёт сторону подхода. Ошибки: `NO_PATH`, `CANT_PLACE`, `NO_ITEM`, `BLOCKED`.
+**`swing(side, sneaky)`** (oc-mcp): сломать блок экипированным инструментом, добыча идёт в инвентарь.
 
-**`use(side, item?)`**: правый клик по блоку, например переключить рычаг.
+**`use(side, sneaky, duration)`** (oc-mcp): правый клик, например переключить рычаг.
 
 ### Инвентарь
 
-**`list_inventory(detail)`**: инвентарь робота, `summary | full`.
+**`inventory_scan()`** (oc-mcp): непустые слоты робота строками `slot 1: 9x minecraft:cobblestone:0 (Cobblestone)`.
 
-**`inspect_container(side)`**
+**`inventory_transfer(from_slot, to_slot, count)`** (oc-mcp): переложить между слотами робота, в слот с другим предметом не кладёт.
 
-Содержимое сундука или машины по слотам:
+**`storage_scan(side)`** (oc-mcp): блок и непустые слоты сундука или машины.
 
-```json
-{"block": "IC2:blockGenerator:5", "slots": [{"slot": 0, "item": "IC2:reactorVent", "count": 1}, {"slot": 1, "item": null}]}
-```
+**`storage_take(side, slot, count, robot_slot)`** (oc-mcp): взять из слота хранилища.
 
-**`take(side, item, count, slot?)`**, **`put(side, item, count, slot?)`**
+**`storage_put(side, robot_slot, count, slot)`** (oc-mcp): положить из слота робота, можно в конкретный слот машины.
 
-Обмен предметами с контейнером. `slot` нужен для машин (вход, выход, слоты реактора). Ответ: `{"moved": 4}`. Ошибки: `NO_ITEM`, `INVENTORY_FULL`.
-
-**`equip(item)`**, **`drop(item, count)`**: экипировать, выбросить.
+**`equip(slot)`** (oc-mcp): поменять местами слот и слот инструмента.
 
 ### Крафт
 
-**`craft(item, count)`**
+**`craft_recipe(recipe, count)`** (oc-mcp)
 
-Крафт через crafting upgrade. Tool сам раскладывает сетку 3x3 и берёт ингредиенты из инвентаря. Ответ: `{"crafted": 2}`. Ошибки: `NO_ITEM`, `NO_RECIPE`, `INVENTORY_FULL`.
+Крафт рецепта верстака по id рецепта NEI. Робот сам освобождает сетку, раскладывает ингредиенты из инвентаря и кладёт результат вне сетки. Ошибки: `NO_ITEM` (с перечнем недостающего), `NO_RECIPE`, `INVENTORY_FULL`.
 
-Отдельного tool для машин нет: печь, macerator и т.п. через `put` во входной слот и `take` из выходного.
+**`craft(count, result_slot)`** (oc-mcp): низкоуровневый крафт того, что уже разложено в сетке.
 
-### Знания (пункты 1 и 3)
+Машины (печь, macerator) через `nei_machine_plan`, `storage_put` во входные слоты и `storage_take` из выходных.
 
-**`search_items(query, limit)`**: поиск по индексу предметов, `{"items": [{"item": "...", "name": "...", "mod": "..."}]}`.
+### Знания
 
-**`get_item(id)`**: карточка предмета.
+**`nei_find(text, limit, lang)`** (oc-mcp): `{"items": [{"item": "minecraft:chest:0", "label": "Chest", "mod": "minecraft"}], "total": 1}`.
 
-**`get_recipes(item)`**
-
-Рецепты из дампа NEI:
+**`nei_recipes(item, usages, category, limit, cursor, lang)`** (oc-mcp)
 
 ```json
-{"recipes": [
- {"type": "crafting_shaped", "output": {"item": "IC2:blockReactorChamber", "count": 1},
-  "grid": [[null, "IC2:itemPlates:6", null], ["IC2:itemPlates:6", "IC2:blockMachine", "IC2:itemPlates:6"], [null, "IC2:itemPlates:6", null]],
-  "ingredients": {"IC2:itemPlates:6": 4, "IC2:blockMachine": 1}},
- {"type": "machine", "machine": "minecraft:furnace", "output": {"item": "minecraft:iron_ingot", "count": 1},
-  "ingredients": {"minecraft:iron_ore": 1}}]}
+{"results": [{"item": "minecraft:stick:0", "total": 1, "recipes": [
+  {"id": "rf56b51469c3b71ce", "cat": "Shaped Crafting", "catId": "codechicken.nei.recipe.ShapedRecipeHandler",
+   "overlay": "crafting", "in": [{"item": "minecraft:planks:0", "n": 2}], "out": [{"item": "minecraft:stick:0", "n": 4}]}]}]}
 ```
 
-**`plan_materials(item, count, use_inventory)`**
+**`nei_recipe(recipe, lang)`** (oc-mcp): рецепт полностью, для верстака сетка `grid: [{"cell", "robotSlot", "item", "count"}]`.
 
-Дерево крафта и то, чего не хватает, с учётом инвентаря робота и склада при `use_inventory: true`:
+**`nei_craft_tree(item, count, use_inventory, lang)`** (oc-mcp)
 
-```json
-{"tree": {"item": "IC2:blockReactorChamber", "count": 1, "children": [...]},
- "missing": [{"item": "IC2:itemPlates:4", "count": 2, "craftable": true}]}
-```
+Всё дерево крафта за один вызов: `steps` в порядке исполнения (`recipe`, `makes`, `runs`, `in`, `out`, `grid`), `raw` недостающее сырьё, `machinesNeeded`. Учитывает только инвентарь робота, склад агент считает сам.
 
-**`search_docs(query, mod?, limit)`**
+**`nei_machine_plan(side, recipe, times, lang)`** (oc-mcp): в какие слоты машины класть ингредиенты и откуда забирать результат.
 
-Поиск по документации о механиках, мультиблоках, настройке машин. Ответ: `{"docs": [{"doc_id": "...", "title": "...", "snippet": "...", "version": "IC2 2.2.x"}]}`. Без этого tool агенту остаётся только веб-поиск.
+**`search_docs(query, mod, limit)`** (добавка)
+
+Поиск по документации о механиках, мультиблоках, настройке машин: `{"docs": [{"doc_id", "title", "snippet", "version"}]}`. Заглушка до RAG из пункта 3: на стенде по фикстурам, с реальным роботом пока `UNSUPPORTED`.
 
 ### Проверка
 
-**`verify_blocks(expected, page?)`**
+**`verify_blocks(expected, page)`** (добавка)
 
-Сверка списка `[{"pos": [x,y,z], "item": "..."}]` с миром:
+Сверка списка `[{"pos": [x,y,z], "item": "..."}]` с миром, 50 записей на страницу:
 
 ```json
-{"checked": 9, "missing": [{"pos": [12,66,9], "item": "minecraft:cobblestone"}], "wrong": [], "next_page": null}
+{"checked": 9, "missing": [{"pos": [101, 66, 100], "item": "minecraft:cobblestone:0"}], "wrong": [], "next_page": null}
 ```
-
-В обычном мире через `inspect` с объездом, в тестах через debug card (проверить).
-
-**`read_block_info(side)`**
-
-Состояние машины рядом: энергия, тепло, активность, слоты, например `{"heat": 1200, "max_heat": 10000, "eu_output": 12, "active": true}`. Зависит от драйверов OpenComputers для IC2 и от того, может ли робот обращаться к блоку как компонент (проверить).
 
 ### Служебные
 
-**`stop()`**: прервать текущее действие робота. Машины не останавливает.
-
-**`get_action_log(last_n)`**: последние действия робота с результатами. Понадобится для метрик пункта 6.
+**`get_action_log(last_n)`** (добавка): последние действия робота с результатами. Нужен для метрик стенда.
 
 ## Коды ошибок
 
@@ -210,48 +185,32 @@
 | `BLOCKED` | Цель или путь заняты, действие невозможно |
 | `NO_PATH` | Путь с заданной policy не найден |
 | `OUT_OF_RANGE` | Цель слишком далеко или вне загруженной или разрешённой зоны |
-| `NO_ITEM` | Нужного предмета нет в инвентаре или контейнере |
+| `NO_ITEM` | Нужного предмета нет в инвентаре или контейнере, или слот пуст |
 | `INVENTORY_FULL` | Нет свободного слота |
 | `NO_ENERGY` | Не хватает энергии |
-| `TOOL_BROKEN` | Инструмент сломан или отсутствует |
-| `CANT_PLACE` | Блок нельзя поставить (нет опоры, не та сторона, защищённая зона) |
+| `TOOL_BROKEN` | Инструмента нет, он сломан или не берёт этот блок |
+| `CANT_PLACE` | Блок нельзя поставить (нет опоры, клетка занята, предмет не блок) |
 | `UNKNOWN_ITEM` | ID или имя предмета не распознаны |
-| `NO_RECIPE` | Рецепта нет |
+| `NO_RECIPE` | Рецепта нет, id рецепта неизвестен или это не рецепт верстака |
 | `TIMEOUT` | Действие не завершилось вовремя |
 | `CONNECTION_LOST` | Связь с роботом пропала. Действие могло выполниться, а могло и нет |
 | `UNSUPPORTED` | У робота нет компонента или апгрейда, который нужен tool. Сообщение называет его |
 | `NO_PROVIDER` | Данных о рецептах сейчас нет: нет игрока с NEI онлайн, и ответа нет в кэше |
+| `UNKNOWN` | Текст ошибки не распознан. Агент обращается с ним как с `BLOCKED` |
 
 Для `TIMEOUT` и `CONNECTION_LOST` важно, чтобы следующий `get_status()` отражал реальное состояние: агент по нему решает, повторять ли действие.
 
 ## Открытые вопросы
 
-Нюансы переезда на MCP робота команды (`oc-mcp`) собраны в [real-mcp-notes.md](real-mcp-notes.md).
+Вопросы к команде по переезду на `oc-mcp` собраны в [real-mcp-notes.md](real-mcp-notes.md). Отдельно здесь:
 
-**Пункт 1 (сборка, NEI)**
-
-- Точные версии IC2 и OpenComputers, они пойдут в `oc-harness.yaml`.
-- Формат дампа рецептов: живой API или статичный JSON. Для `get_recipes` и `plan_materials` удобнее статичный.
-
-**Пункт 2 (pathfinding)**
-
-- Реализуемы ли `move_to` с `policy` и `place_at` с выбором стороны подхода.
-- Откуда берутся абсолютные координаты: navigation upgrade (ограничен картой) или счисление от стартовой точки.
-
-**Пункт 3 (RAG)**
-
-- Индексировать не только предметы и рецепты, но и тексты о механиках (вики IC2 и OC под версии сборки) для `search_docs`.
-- Отдавать версию источника в ответе, агент по ней оценивает достоверность.
-
-**Пункт 4 (транспорт)**
-
-- Где живут `verify_blocks` и `read_block_info`: на роботе, на мосте, через debug card.
-- Может ли робот читать состояние машин IC2 так, как компьютер через adapter.
-- Как сервер узнаёт, выполнилось ли действие после `CONNECTION_LOST`.
-- Разрешён ли internet card доступ к localhost и приватным сетям в конфиге OC.
+- **Пункт 2 (pathfinding).** В каком виде будет поиск пути: tool в `oc-mcp`, отдельный MCP или библиотека на роботе. От этого зависит, кто реализует `move_to` и `place_at` после оракул-карты стенда.
+- **Пункт 3 (RAG).** Индексировать тексты о механиках (вики IC2 и OC под версии сборки) для `search_docs` и отдавать версию источника в ответе.
+- **Пункт 4 (транспорт).** Как `verify_blocks` будет работать в обычной игре без оракула стенда. Как узнать после `CONNECTION_LOST`, выполнилось ли действие.
 
 ## История изменений
 
 - 2026-11-10: первая версия, 27 tools, 12 кодов ошибок.
 - 2026-11-10: уточнено, что `data` всегда объект и списки лежат в его полях. Пример рецептов приведён к рецептам IC2 2.2.827 (в рецепте есть `ingredients`). В правило синхронизации добавлен fake-MCP стенда.
 - 2026-11-11: коды `UNSUPPORTED` и `NO_PROVIDER` для реального MCP (oc-mcp): нет нужного компонента у робота и нет данных NEI без игрока онлайн.
+- 2026-11-11: v2, база oc-mcp. 28 tools: tools `oc-mcp` с их именами и аргументами плюс добавки `move_to`, `face`, `place_at`, `get_status`, `verify_blocks`, `search_docs`, `get_action_log`. Удалены `read_block_info`, `stop`, `drop`, `get_known_map` и tools v1 с заменой в `oc-mcp`. Код `UNKNOWN`. Склад перенесён из `get_status` в `oc-harness.yaml`.

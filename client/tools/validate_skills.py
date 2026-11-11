@@ -17,7 +17,7 @@ import yaml
 ALL_ERROR_CODES = {
     "BLOCKED", "NO_PATH", "OUT_OF_RANGE", "NO_ITEM", "INVENTORY_FULL", "NO_ENERGY",
     "TOOL_BROKEN", "CANT_PLACE", "UNKNOWN_ITEM", "NO_RECIPE", "TIMEOUT", "CONNECTION_LOST",
-    "UNSUPPORTED", "NO_PROVIDER",
+    "UNSUPPORTED", "NO_PROVIDER", "UNKNOWN",
 }
 
 # Встроенные tools самих агентов. Они не входят в MCP-контракт робота, но скиллы

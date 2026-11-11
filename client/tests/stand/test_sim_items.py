@@ -1,15 +1,18 @@
+"""Модель робота v2: инвентарь, хранилища, крафт и NEI."""
+
 import copy
+import json
 
 import pytest
 
 from stand.fake_mcp.inventory import Container, Inventory
+from stand.fake_mcp.nei import CRAFT_GRID
 from stand.fake_mcp.sim import RobotSim
 from stand.knowledge import KNOWLEDGE_DIR, Knowledge
 from stand.scenario import SCENARIOS_DIR, load_scenario
 from stand.world.backend import MemoryWorld
 
-WAREHOUSE = (95, 64, 105)
-NEXT_TO_WAREHOUSE = (96, 64, 105)
+NEXT_TO_WAREHOUSE = (96, 64, 105)  # склад s01 в (95, 64, 105), робот смотрит на west
 
 
 @pytest.fixture(scope="module")
@@ -17,15 +20,24 @@ def k():
     return Knowledge.load(KNOWLEDGE_DIR)
 
 
-def _sim(k, sid="s01-wall", inventory=None, at_warehouse=True):
-    s = copy.deepcopy(load_scenario(SCENARIOS_DIR / sid / "scenario.yaml"))
-    if inventory is not None:
-        s.robot["inventory"] = inventory
+def _sim(k, inventory=None, warehouse=None, at_warehouse=True):
+    s = copy.deepcopy(load_scenario(SCENARIOS_DIR / "s01-wall" / "scenario.yaml"))
+    s.robot["inventory"] = inventory if inventory is not None else []
+    if warehouse is not None:
+        s.warehouse["items"] = warehouse
     if at_warehouse:
-        s.robot["pos"] = NEXT_TO_WAREHOUSE
+        s.robot["pos"] = list(NEXT_TO_WAREHOUSE)
         s.robot["facing"] = "west"
     world = MemoryWorld(s.scene_blocks())
-    return RobotSim(s, Knowledge.load(KNOWLEDGE_DIR, s.knowledge), world), world
+    return RobotSim(s, k, world)
+
+
+def _total(sim) -> int:
+    return sum(n for _, n in (sim.inventory.slot(i) or ("", 0) for i in range(1, 17)))
+
+
+def _recipe(sim, item):
+    return sim.nei_recipes(item)["data"]["results"][0]["recipes"][0]["id"]
 
 
 def test_inventory_add_remove_stacks():
@@ -39,166 +51,205 @@ def test_inventory_add_remove_stacks():
 
 def test_container_slots():
     c = Container(3)
-    assert c.put_slot(1, "x", 5) == 0
-    assert c.put_slot(1, "y", 1) == 1
-    assert c.take_slot(1, "x", 3) == 3 and c.count("x") == 2
-    assert c.take_slot(0, "x", 1) == 0
+    assert c.put_slot(0, "a", 70) == 6
+    assert c.take_slot(0, "a", 10) == 10 and c.slot_count(0, "a") == 54
 
 
-def test_take_from_warehouse_moves_items(k):
-    sim, _ = _sim(k)
-    r = sim.take("front", "minecraft:cobblestone", 9)
-    assert r["ok"] and r["data"]["moved"] == 9
-    assert sim.inventory.count("minecraft:cobblestone") == 9
-    assert sim.containers[WAREHOUSE].count("minecraft:cobblestone") == 23
-
-
-def test_take_missing_item(k):
-    sim, _ = _sim(k)
-    assert sim.take("front", "minecraft:planks", 1)["error_code"] == "NO_ITEM"
-    assert sim.take("front", "minecraft:cobblestone", 33)["error_code"] == "NO_ITEM"
-    assert sim.take("front", "nomod:thing", 1)["error_code"] == "UNKNOWN_ITEM"
-
-
-def test_take_wrong_side_blocked(k):
-    sim, _ = _sim(k)
-    r = sim.take("back", "minecraft:cobblestone", 1)
-    assert r["error_code"] == "BLOCKED" and "no container" in r["message"]
-
-
-def test_inventory_full(k):
-    full = [{"item": "minecraft:dirt", "count": 64}] * 16
-    sim, _ = _sim(k, inventory=full)
-    assert sim.take("front", "minecraft:cobblestone", 1)["error_code"] == "INVENTORY_FULL"
-    assert sim.containers[WAREHOUSE].count("minecraft:cobblestone") == 32
-
-
-def test_put_back_and_inspect_container(k):
-    sim, _ = _sim(k)
-    sim.take("front", "minecraft:cobblestone", 10)
-    assert sim.put("front", "minecraft:cobblestone", 4)["ok"]
-    d = sim.inspect_container("front")["data"]
-    assert d["block"] == "minecraft:chest" and d["size"] == 27
-    assert sum(s["count"] for s in d["slots"]) == 26
-    assert sim.put("front", "minecraft:cobblestone", 50)["error_code"] == "NO_ITEM"
-    assert sim.inspect_container("back")["error_code"] == "BLOCKED"
-
-
-def test_craft_planks_from_log(k):
-    sim, _ = _sim(k, inventory=[{"item": "minecraft:log", "count": 2}])
-    r = sim.craft("minecraft:planks", 5)
-    assert r["ok"] and r["data"]["crafted"] == 8
-    assert sim.inventory.count("minecraft:planks") == 8
-    assert sim.inventory.count("minecraft:log") == 0
-
-
-def test_craft_missing_ingredient(k):
-    sim, _ = _sim(k, inventory=[{"item": "minecraft:planks", "count": 3}])
-    r = sim.craft("minecraft:chest", 1)
-    assert r["error_code"] == "NO_ITEM"
-    assert r["data"]["missing"] == [{"item": "minecraft:planks", "count": 5}]
-    assert sim.inventory.count("minecraft:planks") == 3
-
-
-def test_craft_machine_only_no_recipe(k):
-    sim, _ = _sim(k, inventory=[{"item": "minecraft:iron_ore", "count": 1}])
-    assert sim.craft("minecraft:iron_ingot", 1)["error_code"] == "NO_RECIPE"
-    assert sim.craft("nomod:thing", 1)["error_code"] == "UNKNOWN_ITEM"
-
-
-def test_craft_inventory_full_rolls_back(k):
-    # Бревно уходит целиком, слот освобождается, доски помещаются.
-    inv = [{"item": "minecraft:log", "count": 1}] + [{"item": "minecraft:dirt", "count": 64}] * 15
-    sim, _ = _sim(k, inventory=inv)
-    assert sim.craft("minecraft:planks", 4)["ok"]
-    # Из двух брёвен уходит одно, слот остаётся занят, доскам места нет.
-    inv = [{"item": "minecraft:log", "count": 2}] + [{"item": "minecraft:dirt", "count": 64}] * 15
-    sim, _ = _sim(k, inventory=inv)
-    assert sim.craft("minecraft:planks", 4)["error_code"] == "INVENTORY_FULL"
-    assert sim.inventory.count("minecraft:log") == 2
-    assert sim.inventory.count("minecraft:planks") == 0
-
-
-def test_put_into_machine_slot(k):
-    sim, world = _sim(k, inventory=[{"item": "IC2:blockMachine:3", "count": 1},
-                                    {"item": "minecraft:iron_ore", "count": 2}], at_warehouse=False)
-    assert sim.place("IC2:blockMachine:3", "front")["ok"]
-    r = sim.put("front", "minecraft:iron_ore", 1, slot=0)
+def test_storage_take_slot_one_is_first_chest_slot(k):
+    sim = _sim(k)
+    r = sim.storage_take("front", 1, 9)
     assert r["ok"], r
-    d = sim.inspect_container("front")["data"]
-    assert d["block"] == "IC2:blockMachine:3"
-    assert d["slots"] == [{"slot": 0, "item": "minecraft:iron_ore", "count": 1}]
-    assert sim.put("front", "minecraft:iron_ore", 1, slot=9)["error_code"] == "BLOCKED"
+    assert r["message"] == "Took items from front slot 1."
+    assert sim.inventory.slot(1) == ("minecraft:cobblestone", 9)
+    assert sim.containers[(95, 64, 105)].count("minecraft:cobblestone") == 23
 
 
-def test_plan_materials_counts_warehouse(k):
-    sim, _ = _sim(k, "s04-ic2-machines", inventory=[])
-    d = sim.plan_materials("IC2:blockGenerator", 1)["data"]
-    assert d["missing"] == []
-    d = sim.plan_materials("IC2:blockGenerator", 1, use_inventory=False)["data"]
-    assert {m["item"] for m in d["missing"]} >= {"IC2:itemBatRE"}
+def test_storage_take_whole_slot_by_default(k):
+    sim = _sim(k)
+    assert sim.storage_take("front", 1)["ok"]
+    assert sim.inventory.count("minecraft:cobblestone") == 32
 
 
-def test_knowledge_tools(k):
-    sim, _ = _sim(k)
-    assert sim.search_items("macerator")["data"]["items"][0]["item"] == "IC2:blockMachine:3"
-    assert sim.get_item("minecraft:planks:0")["data"]["item"] == "minecraft:planks"
-    assert sim.get_item("nomod:x")["error_code"] == "UNKNOWN_ITEM"
-    recipes = sim.get_recipes("IC2:blockGenerator")["data"]["recipes"]
-    assert recipes[0]["grid"][1] == ["IC2:itemPlates:4"] * 3
-    assert sim.search_docs("power macerator generator")["data"]["docs"][0]["doc_id"] in ("ic2-macerator", "ic2-generator")
+def test_storage_take_empty_full_and_no_container(k):
+    sim = _sim(k)
+    r = sim.storage_take("front", 5, 1)
+    assert r["error_code"] == "NO_ITEM" and r["message"] == "cannot take items from front slot 5: slot is empty"
+    full = _sim(k, inventory=[{"item": "minecraft:stick", "count": 64 * 16}])
+    r = full.storage_take("front", 1, 1)
+    assert r["error_code"] == "INVENTORY_FULL"
+    assert r["message"] == "cannot take items from front slot 1: robot inventory is full"
+    away = _sim(k, at_warehouse=False)
+    r = away.storage_take("front", 1, 1)
+    assert r["error_code"] == "BLOCKED" and r["message"] == "cannot take items from front slot 1: no inventory"
 
 
-def test_verify_blocks_missing_and_wrong(k):
-    sim, world = _sim(k, inventory=[{"item": "minecraft:cobblestone", "count": 2}], at_warehouse=False)
-    sim.place_at(100, 64, 100, "minecraft:cobblestone")
-    world.set_block((101, 64, 100), ("minecraft:planks", 0))
-    expected = [
-        {"pos": [100, 64, 100], "item": "minecraft:cobblestone"},
-        {"pos": [101, 64, 100], "item": "minecraft:cobblestone"},
-        {"pos": [102, 64, 100], "item": "minecraft:cobblestone"},
-        {"pos": [95, 64, 105], "item": "minecraft:chest"},
+def test_storage_put_back(k):
+    sim = _sim(k, inventory=[{"item": "minecraft:stick", "count": 3}])
+    r = sim.storage_put("front", 1, 2, 10)
+    assert r["ok"] and r["message"] == "Put items from robot slot 1 front."
+    assert sim.containers[(95, 64, 105)].slot_count(9, "minecraft:stick") == 2
+    assert sim.inventory.slot(1) == ("minecraft:stick", 1)
+
+
+def test_storage_scan_lines_and_data(k):
+    sim = _sim(k)
+    r = sim.storage_scan("front")
+    assert r["ok"]
+    assert r["message"].splitlines()[:3] == [
+        "Block: minecraft:chest", "Storage has 27 slots.", "slot 1: 32x minecraft:cobblestone (Cobblestone)",
     ]
-    d = sim.verify_blocks(expected)["data"]
-    assert d["checked"] == 4
-    assert d["missing"] == [{"pos": [102, 64, 100], "item": "minecraft:cobblestone"}]
-    assert d["wrong"] == [{"pos": [101, 64, 100], "item": "minecraft:cobblestone"}]
-    assert d["next_page"] is None
+    assert r["data"]["slots"] == [{"slot": 1, "count": 32, "name": "minecraft:cobblestone:0", "label": "Cobblestone"}]
+    assert r["data"]["size"] == 27 and r["data"]["block"] == "minecraft:chest"
 
 
-def test_verify_blocks_pages(k):
-    sim, _ = _sim(k)
-    expected = [{"pos": [100, 64, 100 - i], "item": "minecraft:air"} for i in range(60)]
-    first = sim.verify_blocks(expected)["data"]
-    assert first["checked"] == 50 and first["next_page"] == 1
-    second = sim.verify_blocks(expected, page=1)["data"]
-    assert second["checked"] == 10 and second["next_page"] is None
+def test_inventory_scan_lines_and_empty(k):
+    assert _sim(k).inventory_scan()["message"] == "Robot inventory is empty."
+    sim = _sim(k, inventory=[{"item": "minecraft:planks:1", "count": 4}])
+    r = sim.inventory_scan()
+    label = k.items["minecraft:planks:1"]["name"]
+    assert r["message"] == f"slot 1: 4x minecraft:planks ({label})"
+    assert r["data"]["slots"][0]["name"] == "minecraft:planks:1"
 
 
-def test_read_block_info_blocked(k):
-    sim, _ = _sim(k)
-    r = sim.read_block_info("front")
-    assert r["error_code"] == "BLOCKED" and "not supported" in r["message"]
+def test_inventory_transfer_refuses_swap(k):
+    sim = _sim(k, inventory=[{"item": "minecraft:stick", "count": 3}])
+    sim.inventory.set_slot(2, "minecraft:flint", 1)
+    r = sim.inventory_transfer(1, 2)
+    assert r["error_code"] == "BLOCKED"
+    assert r["message"] == "cannot move items from slot 1 to slot 2: slot 2 holds a different item"
+    ok = sim.inventory_transfer(1, 4, 2)
+    assert ok["ok"] and ok["message"] == "Moved items from slot 1 to slot 4."
+    assert sim.inventory.slot(4) == ("minecraft:stick", 2) and sim.inventory.slot(1) == ("minecraft:stick", 1)
 
 
-def test_equip_and_drop(k):
-    sim, _ = _sim(k, inventory=[{"item": "minecraft:stick", "count": 3}])
-    assert sim.equip("minecraft:stick")["ok"]
-    assert sim.get_status()["data"]["tool"]["item"] == "minecraft:stick"
-    assert sim.inventory.count("minecraft:stick") == 2
-    assert sim.drop("minecraft:stick", 2)["ok"]
-    assert sim.drop("minecraft:stick", 1)["error_code"] == "NO_ITEM"
-    assert sim.equip("minecraft:planks")["error_code"] == "NO_ITEM"
+def test_equip_swaps_tool(k):
+    sim = _sim(k, inventory=[{"item": "minecraft:stick", "count": 1}])
+    r = sim.equip(1)
+    assert r["ok"] and r["message"] == "Swapped slot 1 with the tool slot."
+    assert sim.tool == "minecraft:stick" and sim.inventory.slot(1) is None
+    assert sim.equip(2)["error_code"] == "NO_ITEM"
 
 
-def test_stop(k):
-    sim, _ = _sim(k)
-    assert sim.stop()["ok"]
+def test_craft_recipe_planks_from_log(k):
+    sim = _sim(k, inventory=[{"item": "minecraft:log", "count": 1}])
+    r = sim.craft_recipe(_recipe(sim, "minecraft:planks"), 1)
+    assert r["ok"], r
+    assert sim.inventory.count("minecraft:planks") == 4 and sim.inventory.count("minecraft:log") == 0
+    slot = next(i for i in range(1, 17) if sim.inventory.slot(i) == ("minecraft:planks", 4))
+    assert slot not in CRAFT_GRID
+    assert r["message"].startswith(f"Crafted 1 time(s): slot {slot} now holds 4x minecraft:planks:0 (")
 
 
-def test_landmark_chest_is_empty_container(k):
-    s = copy.deepcopy(load_scenario(SCENARIOS_DIR / "s08-landmark" / "scenario.yaml"))
-    s.robot["pos"] = (105, 64, 101)
-    sim = RobotSim(s, k, MemoryWorld(s.scene_blocks()))
-    d = sim.inspect_container("front")["data"]
-    assert d["block"] == "minecraft:chest" and d["slots"] == []
+def test_craft_recipe_missing_lists_items(k):
+    sim = _sim(k, inventory=[{"item": "minecraft:planks", "count": 1}])
+    r = sim.craft_recipe(_recipe(sim, "minecraft:stick"), 1)
+    assert r["error_code"] == "NO_ITEM"
+    assert r["message"].startswith("not enough ingredients in the robot inventory, missing: 1x ")
+    assert "(grid slot 5)" in r["message"]
+    assert _total(sim) == 1
+
+
+def test_craft_recipe_machine_recipe_refused(k):
+    sim = _sim(k, inventory=[{"item": "minecraft:iron_ore", "count": 1}])
+    r = sim.craft_recipe(_recipe(sim, "minecraft:iron_ingot"), 1)
+    assert r["error_code"] == "NO_RECIPE"
+    assert r["message"] == "not a crafting-table recipe (category Smelting); use nei_machine_plan for machines"
+
+
+def test_craft_recipe_unknown_id(k):
+    r = _sim(k).craft_recipe("r0000000000000000", 1)
+    assert r["error_code"] == "NO_RECIPE" and r["message"].startswith("UNKNOWN_RECIPE: ")
+
+
+def test_craft_recipe_grid_busy_inventory_full(k):
+    sim = _sim(k, inventory=[{"item": "minecraft:flint", "count": 64 * 15}, {"item": "minecraft:log", "count": 1}])
+    before = _total(sim)
+    r = sim.craft_recipe(_recipe(sim, "minecraft:planks"), 1)
+    assert r["error_code"] == "INVENTORY_FULL"
+    assert _total(sim) == before
+
+
+def test_craft_low_level_from_grid(k):
+    sim = _sim(k)
+    sim.inventory.set_slot(1, "minecraft:planks", 1)
+    sim.inventory.set_slot(5, "minecraft:planks", 1)
+    r = sim.craft()
+    assert r["ok"] and r["message"] == "Crafted. Use inventory_scan to see the result."
+    assert sim.inventory.count("minecraft:stick") == 4 and sim.inventory.count("minecraft:planks") == 0
+
+
+def test_craft_low_level_empty_and_no_match(k):
+    sim = _sim(k)
+    r = sim.craft()
+    assert r["error_code"] == "NO_ITEM"
+    assert r["message"] == "crafting grid is empty (grid slots are 1,2,3 / 5,6,7 / 9,10,11)"
+    sim.inventory.set_slot(1, "minecraft:flint", 1)
+    sim.inventory.set_slot(2, "minecraft:stick", 1)
+    r = sim.craft()
+    assert r["error_code"] == "NO_RECIPE"
+    assert r["message"].startswith("no recipe matches the grid, or there is no free slot for the result. Current grid:\n")
+
+
+def test_nei_tools_wrap_result(k):
+    sim = _sim(k)
+    r = sim.nei_find("chest")
+    assert r["ok"] and r["data"]["items"]
+    assert json.loads(r["message"]) == r["data"]
+    bad = sim.nei_recipes("nomod:nothing")
+    assert bad["error_code"] == "UNKNOWN_ITEM" and bad["message"].startswith("UNKNOWN_ITEM: ")
+
+
+def test_nei_craft_tree_uses_inventory(k):
+    sim = _sim(k, inventory=[{"item": "minecraft:log", "count": 2}])
+    with_inv = sim.nei_craft_tree("minecraft:chest", 1, True)["data"]
+    without = sim.nei_craft_tree("minecraft:chest", 1, False)["data"]
+    assert with_inv["raw"] == []
+    assert {"item": "minecraft:log:0", "n": 2} in without["raw"]
+
+
+def test_nei_machine_plan_needs_container(k):
+    sim = _sim(k)
+    rid = _recipe(sim, "minecraft:iron_ingot")
+    r = sim.nei_machine_plan("front", rid)
+    assert r["ok"] and r["data"]["put"][0]["slot"] == 1
+    away = _sim(k, at_warehouse=False)
+    assert away.nei_machine_plan("front", rid)["error_code"] == "BLOCKED"
+
+
+def test_invalid_robot_slot_loses_nothing(k):
+    """Слоты робота 1-16. Слот 17 отклоняется до любых изменений."""
+    sim = _sim(k, inventory=[{"item": "minecraft:cobblestone", "count": 10}])
+    chest = sim.containers[(95, 64, 105)]
+    before = (_total(sim), chest.count("minecraft:cobblestone"))
+    for r in (sim.inventory_transfer(1, 17), sim.storage_take("front", 1, 5, 17), sim.storage_put("front", 17),
+              sim.equip(17), sim.place("front", 17), sim.craft(None, 17)):
+        assert r["ok"] is False and r["error_code"] == "BLOCKED", r
+        assert "invalid slot" in r["message"], r
+    assert (_total(sim), chest.count("minecraft:cobblestone")) == before
+
+
+def test_texts_match_oc_mcp_lua(k):
+    away = _sim(k, at_warehouse=False)
+    assert away.storage_scan("front")["message"] == "no storage on side front"
+    sim = _sim(k, inventory=[{"item": "minecraft:stick", "count": 64}])
+    sim.inventory.set_slot(2, "minecraft:flint", 1)
+    assert sim.inventory_transfer(3, 1)["message"] == "cannot move items from slot 3 to slot 1: slot 3 is empty"
+    assert sim.inventory_transfer(1, 2)["message"] == "cannot move items from slot 1 to slot 2: slot 2 holds a different item"
+    sim.inventory.set_slot(4, "minecraft:stick", 64)
+    assert sim.inventory_transfer(1, 4)["message"] == "cannot move items from slot 1 to slot 4: slot 4 is full"
+
+
+def test_recipe_given_item_id_gets_hint(k):
+    r = _sim(k).craft_recipe("minecraft:stick", 1)
+    assert r["error_code"] == "NO_RECIPE"
+    assert r["message"] == ("UNKNOWN_RECIPE: unknown recipe: minecraft:stick 'minecraft:stick' is an item id, not a "
+                            "recipe id: get recipe ids (like r7fbebd0471463308) from nei_recipes.")
+
+
+def test_scan_text_has_no_damage_like_oc_mcp(k):
+    sim = _sim(k, inventory=[{"item": "minecraft:planks:1", "count": 4}])
+    r = sim.inventory_scan()
+    assert r["message"].startswith("slot 1: 4x minecraft:planks (")
+    assert r["data"]["slots"][0]["name"] == "minecraft:planks:1"
+    s = sim.storage_scan("front")
+    assert "slot 1: 32x minecraft:cobblestone (Cobblestone)" in s["message"]

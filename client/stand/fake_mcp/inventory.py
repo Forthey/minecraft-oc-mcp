@@ -54,6 +54,26 @@ class Inventory:
                     self.slots[i] = None
         return True
 
+    # Слоты с 1, как в tools oc-mcp.
+
+    def slot(self, i: int) -> tuple[str, int] | None:
+        """Предмет и количество в слоте i (с 1). None для пустого или несуществующего слота."""
+        if not 1 <= i <= self.size:
+            return None
+        s = self.slots[i - 1]
+        return (s[0], s[1]) if s else None
+
+    def set_slot(self, i: int, item: str | None, count: int) -> None:
+        """Записывает слот i (с 1). Пустой item или count 0 очищают слот."""
+        self.slots[i - 1] = [item, count] if item and count > 0 else None
+
+    def first_slot_with(self, item: str) -> int | None:
+        """Первый слот (с 1), где лежит item."""
+        for i, s in enumerate(self.slots, start=1):
+            if s and s[0] == item:
+                return i
+        return None
+
     def totals(self) -> dict[str, int]:
         out: dict[str, int] = {}
         for s in self.slots:

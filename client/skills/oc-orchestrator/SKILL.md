@@ -14,10 +14,10 @@ Robot tools are listed in [tool-contract.md](../references/tool-contract.md). Er
 1. Read `oc-harness.yaml` from the project root. If it is missing, use the defaults from [config.md](../references/config.md).
 2. Check for an existing task with the same goal in `.oc-tasks/`. If one exists and is not finished, follow [Resume](#resume). Versions recorded in its task.md count as known.
 3. If the task needs research and `versions.ic2` or `versions.opencomputers` is unknown (missing or `"<set me>"`), ask the user once before research. If research is skipped, record the versions as unknown and go on without asking.
-4. Call `get_status()` once to learn position, facing, energy and the warehouse position.
+4. Call `get_status()` once to learn position and facing. The warehouse position and side come from `warehouse` in `oc-harness.yaml`. If the key is missing, ask the user where the warehouse is.
 5. Create the task workspace and write task.md with the goal, versions, warehouse and the effective budget values.
 
-The robot tools you may call yourself are `get_status`, the knowledge tools (`search_items`, `get_item`, `get_recipes`, `plan_materials`, `search_docs`) and `stop`. Everything else is delegated.
+The robot tools you may call yourself are `get_status` and the knowledge tools (`nei_find`, `nei_recipes`, `nei_recipe`, `nei_craft_tree`, `search_docs`). Everything else is delegated. If a knowledge tool returns `NO_PROVIDER`, ask the user to join the game with NEI. If any tool returns `UNSUPPORTED`, tell the user which component the robot is missing.
 
 ## Phases
 

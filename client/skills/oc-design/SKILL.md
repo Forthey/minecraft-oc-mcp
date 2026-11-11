@@ -11,7 +11,7 @@ There are no ready-made blueprints. You derive the build plan from research note
 
 - Research notes in `research/`.
 - task.md: goal, versions, warehouse position, `safety.require_confirm`.
-- `get_status()` result: where the robot is and where there is free space.
+- `get_status()` result: where the robot is and where it faces. It does not report free space: to check that the chosen area is free, call `verify_blocks` with `minecraft:air` for its cells.
 
 ## Rules
 
@@ -22,7 +22,7 @@ There are no ready-made blueprints. You derive the build plan from research note
 5. **Gates.** A stage that inserts fuel gets `gate: insert_fuel`. A stage that turns a machine on gets `gate: activate_machine`. A stage that needs digging next to already placed blocks gets `gate: dig_near_structure`. Other stages get `gate: null`. The same applies to single checks: a check whose `actions` insert fuel or switch a machine on gets its own `gate` (for example the final check that flips the reactor lever gets `gate: activate_machine`). A check without such actions has no `gate` field.
 6. **Acceptance checks.** `acceptance.structural: true` means the verifier runs `verify_blocks` on the stage blocks. Functional checks are objects with `description`, `actions` (the exact steps the verifier may perform, such as putting coal into a generator) and `expect` (an observable result). The verifier may change the world only through these actions, so write every needed action down.
 7. **Safety.** For anything that can explode, burn, flood or break: write the risks into `safety`, order the stages so dangerous steps come last, and set `emergency_off` to the exact way to stop it at once. The schema requires `emergency_off` when a stage has gate `insert_fuel` or `activate_machine`. For harmless builds it is `null`.
-8. **Final acceptance** proves the goal works, not only that blocks exist: energy produced, item processed, heat stable. It is never empty (the schema requires at least one check). For a plain structure, the final check is `verify_blocks` over the blocks of all stages.
+8. **Final acceptance** proves the goal works, not only that blocks exist: item processed, fuel consumed, no component lost. Write checks the robot can observe with `storage_scan`, `verify_blocks` and `use`. It is never empty (the schema requires at least one check). For a plain structure, the final check is `verify_blocks` over the blocks of all stages.
 
 ## Minimal example (plain wall, no dangerous steps)
 

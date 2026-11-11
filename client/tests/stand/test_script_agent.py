@@ -42,7 +42,8 @@ def test_script_agent_memory(tmp_path):
     assert all(JOURNAL_LINE_RE.match(line) for line in lines)
     assert re.search(r"phase=final .* status=DONE", lines[-1])
     log = [json.loads(line) for line in (tmp_path / "action_log.jsonl").read_text().splitlines()]
-    assert len(log) == 13 and all(e["ok"] for e in log)
+    assert len(log) == 14 and all(e["ok"] for e in log)
+    assert [e["tool"] for e in log[:4]] == ["move_to", "face", "storage_scan", "storage_take"]
     assert sum(1 for e in log if e["tool"] == "place_at") == 9
     assert log[-1]["tool"] == "verify_blocks"
 

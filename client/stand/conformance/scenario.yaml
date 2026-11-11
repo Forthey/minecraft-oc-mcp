@@ -1,14 +1,12 @@
 # Сцена контрактных проверок. Робот стоит вплотную к складу и смотрит на него (запад).
 # Для реального MCP эту же сцену должен воспроизвести real_setup: робот в (96, 64, 105)
-# лицом на запад, в сундуке склада 8 булыжника, камень в (100, 64, 100).
+# лицом на запад, с пустым инвентарём, в первом слоте сундука склада 8 булыжника.
 id: conformance
 title: Сцена контрактных проверок MCP
 goal: Conformance checks only, no goal for an agent.
 region: {from: [90, 63, 90], to: [115, 72, 110]}
 robot: {pos: [96, 64, 105], facing: west}
 warehouse: {pos: [95, 64, 105], side: east, items: {minecraft:cobblestone: 8}}
-setup_blocks:
-  - {pos: [100, 64, 100], block: minecraft:stone}
 expected:
   mode: fixed
   fill: [{pos: [100, 64, 101], block: minecraft:cobblestone}]

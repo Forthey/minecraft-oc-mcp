@@ -72,9 +72,9 @@
           {
             "description": "cooling components are in the planned slots",
             "actions": [
-              "inspect_container on the reactor"
+              "storage_scan on the reactor"
             ],
-            "expect": "slots 0 and 2 hold IC2:reactorVent"
+            "expect": "slots 1 and 3 hold IC2:reactorVent"
           }
         ]
       },
@@ -101,9 +101,9 @@
           {
             "description": "fuel rod is in slot 1",
             "actions": [
-              "inspect_container on the reactor"
+              "storage_scan on the reactor"
             ],
-            "expect": "slot 1 holds IC2:reactorUraniumSimple"
+            "expect": "slot 2 holds IC2:reactorUraniumSimple"
           }
         ]
       },
@@ -135,23 +135,23 @@
   ],
   "final_acceptance": [
     {
-      "description": "reactor produces energy",
+      "description": "reactor runs",
       "actions": [
         "use the lever at [0, 1, 0] to switch on",
-        "read_block_info on the reactor"
+        "storage_scan on the reactor after 10 s"
       ],
-      "expect": "EU output > 0",
+      "expect": "fuel rod still in slot 2, its durability lower than before",
       "gate": "activate_machine"
     },
     {
-      "description": "heat stays low",
+      "description": "no component overheats",
       "actions": [
-        "read_block_info on the reactor every 10 s for 60 s"
+        "storage_scan on the reactor every 10 s for 60 s"
       ],
-      "expect": "heat below 50% of max heat in every reading and not rising"
+      "expect": "both vents still in slots 1 and 3 in every reading (an overheated vent melts and disappears)"
     }
   ],
-  "emergency_off": "use the lever at [0, 1, 0] to switch the reactor off, then take the fuel rod out of slot 1",
+  "emergency_off": "use the lever at [0, 1, 0] to switch the reactor off, then storage_take the fuel rod from slot 2",
   "sources": [
     "research/reactor-structure.md",
     "research/reactor-safe-layout.md"

@@ -42,17 +42,29 @@ def test_error_codes_subset():
 
 
 def test_profiles_reference_known_tools():
-    for name, disabled in PROFILES.items():
-        assert disabled <= set(TOOL_SPECS), name
+    assert set(PROFILES) == {"full", "no-vision", "no-docs", "no-nei"}
+    for name, profile in PROFILES.items():
+        assert set(profile) == {"disabled", "no_provider"}, name
+        assert profile["disabled"] | profile["no_provider"] <= set(TOOL_SPECS), name
 
 
 def test_profile_hides_tools(tmp_path):
     d, _, _ = _dispatcher(tmp_path, profile="no-vision")
     enabled = set(d.enabled_tools())
-    assert not enabled & {"inspect", "scan_area", "get_known_map"}
-    assert len(enabled) == 24
-    r = d.call("inspect", {"side": "front"})
+    assert not enabled & {"surroundings", "geo_scan"}
+    assert len(enabled) == 26
+    r = d.call("surroundings", {})
     assert r["error_code"] == "BLOCKED" and "not available" in r["message"]
+
+
+def test_no_nei_profile_returns_no_provider(tmp_path):
+    d, _, _ = _dispatcher(tmp_path, profile="no-nei")
+    assert len(d.enabled_tools()) == len(TOOL_SPECS)
+    for name, args in [("nei_find", {"text": "stone"}), ("craft_recipe", {"recipe": "r0000000000000000"})]:
+        r = d.call(name, args)
+        assert r["error_code"] == "NO_PROVIDER", name
+        assert r["message"] == "NO_PROVIDER: no player with the mod is online and the answer is not cached"
+    assert d.call("get_status", {})["ok"]
 
 
 def test_fault_applied(tmp_path):
@@ -82,7 +94,7 @@ def test_log_line_shape(tmp_path):
     entry = json.loads(lines[0])
     assert set(entry) == {"ts", "tool", "args", "ok", "error_code", "duration_ms", "fault", "data"}
     assert entry["tool"] == "move_to" and entry["ok"] is True and entry["error_code"] is None
-    assert entry["data"] == {"pos": [100, 64, 101], "dug": []}
+    assert entry["data"]["pos"] == [100, 64, 101] and entry["data"]["dug"] == []
 
 
 def test_from_argument_mapped(tmp_path):
@@ -129,19 +141,20 @@ def test_every_tool_callable(tmp_path):
     """Каждый tool контракта отвечает конвертом на минимальные аргументы."""
     d, _, _ = _dispatcher(tmp_path)
     minimal = {
-        "get_status": {}, "inspect": {"side": "front"}, "scan_area": {"box": {"from": [99, 64, 99], "to": [101, 64, 101]}},
-        "get_known_map": {"box": {"from": [99, 64, 99], "to": [101, 64, 101]}}, "move_to": {"x": 100, "y": 64, "z": 104},
-        "move": {"dir": "up"}, "face": {"dir": "east"}, "dig": {"side": "front"},
-        "place": {"item": "minecraft:cobblestone", "side": "front"},
-        "place_at": {"x": 100, "y": 64, "z": 100, "item": "minecraft:cobblestone"}, "use": {"side": "front"},
-        "list_inventory": {}, "inspect_container": {"side": "front"},
-        "take": {"side": "front", "item": "minecraft:cobblestone", "count": 1},
-        "put": {"side": "front", "item": "minecraft:cobblestone", "count": 1}, "equip": {"item": "minecraft:cobblestone"},
-        "drop": {"item": "minecraft:cobblestone", "count": 1}, "craft": {"item": "minecraft:furnace", "count": 1},
-        "search_items": {"query": "stone"}, "get_item": {"id": "minecraft:stone"}, "get_recipes": {"item": "minecraft:chest"},
-        "plan_materials": {"item": "minecraft:chest", "count": 1}, "search_docs": {"query": "generator"},
+        "get_status": {}, "world_info": {}, "surroundings": {}, "geo_scan": {"width": 2, "depth": 2},
+        "move_to": {"x": 100, "y": 64, "z": 104}, "face": {"direction": "east"},
+        "move": {"direction": "up"}, "turn": {"direction": "left"},
+        "place_at": {"x": 100, "y": 64, "z": 100, "item": "minecraft:cobblestone"},
+        "place": {"side": "front"}, "swing": {"side": "front"}, "use": {"side": "front"},
+        "inventory_scan": {}, "inventory_transfer": {"from_slot": 1, "to_slot": 4},
+        "storage_scan": {"side": "front"}, "storage_take": {"side": "front", "slot": 1},
+        "storage_put": {"side": "front", "robot_slot": 1}, "equip": {"slot": 1},
+        "craft_recipe": {"recipe": "r0000000000000000"}, "craft": {},
+        "nei_find": {"text": "stone"}, "nei_recipes": {"item": "minecraft:chest"},
+        "nei_recipe": {"recipe": "r0000000000000000"}, "nei_craft_tree": {"item": "minecraft:chest"},
+        "nei_machine_plan": {"recipe": "r0000000000000000"}, "search_docs": {"query": "generator"},
         "verify_blocks": {"expected": [{"pos": [100, 64, 100], "item": "minecraft:cobblestone"}]},
-        "read_block_info": {"side": "front"}, "stop": {}, "get_action_log": {},
+        "get_action_log": {},
     }
     assert set(minimal) == set(TOOL_SPECS)
     for name, args in minimal.items():

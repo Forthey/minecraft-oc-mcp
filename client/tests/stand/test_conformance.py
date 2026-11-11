@@ -47,15 +47,18 @@ def test_scene_scenario_valid():
     scene = load_scene()
     s = load_scenario(scene["scenario_path"])
     assert check_scenario(s, Knowledge.load(KNOWLEDGE_DIR), load_config()) == []
-    assert tuple(scene["occupied"]) in s.setup_blocks
+    # Робот смотрит на склад: сторона occupied_side занята сундуком, empty_slot в нём пуст.
+    assert scene["occupied_side"] == scene["warehouse_side"] == "front"
+    assert s.robot["facing"] == "west" and tuple(s.robot["pos"]) == (96, 64, 105)
+    assert tuple(s.warehouse["pos"]) == (95, 64, 105)
 
 
 def test_inprocess_fake_passes():
     results = _run(DispatcherSession(_dispatcher()))
     assert all(r.ok for r in results), [r for r in results if not r.ok]
     assert {r.name for r in results} == {
-        "tools_match_contract", "envelope_shape", "cant_place_on_occupied",
-        "no_item_on_take", "out_of_range", "unknown_item",
+        "tools_match_contract", "envelope_shape", "blocked_on_occupied",
+        "no_item_on_empty_slot", "out_of_range", "unknown_item", "nei_available",
     }
 
 
@@ -70,10 +73,10 @@ def test_fake_passes_conformance_over_stdio():
 
 def test_broken_server_detected(monkeypatch):
     d = _dispatcher()
-    monkeypatch.setattr(d.sim, "place_at", lambda *a, **kw: ok("placed"))
+    monkeypatch.setattr(d.sim, "place", lambda *a, **kw: ok("placed"))
     results = {r.name: r for r in _run(DispatcherSession(d))}
-    assert not results["cant_place_on_occupied"].ok
-    assert "CANT_PLACE" in results["cant_place_on_occupied"].detail
+    assert not results["blocked_on_occupied"].ok
+    assert "BLOCKED" in results["blocked_on_occupied"].detail
     assert results["out_of_range"].ok
 
 
@@ -96,7 +99,7 @@ def test_unknown_error_code_detected(monkeypatch):
     d = _dispatcher()
     from stand.fake_mcp.envelope import err
 
-    monkeypatch.setattr(d.sim, "get_item", lambda id: err("NOT_FOUND", "no such item"))
+    monkeypatch.setattr(d.sim, "place_at", lambda *a, **kw: err("NOT_FOUND", "no such item"))
     results = {r.name: r for r in _run(DispatcherSession(d))}
     assert not results["unknown_item"].ok
     assert "NOT_FOUND" in results["unknown_item"].detail
@@ -107,7 +110,14 @@ def test_cli_exit_code(capsys):
 
     assert main(["--mcp", "fake"]) == 0
     out = capsys.readouterr().out
-    assert "tools_match_contract" in out and "6/6" in out
+    assert "tools_match_contract" in out and "7/7" in out
+
+
+def test_no_provider_counts_as_nei_available():
+    sim_d = _dispatcher()
+    d = Dispatcher(sim_d.sim, "no-nei", [], ActionLog(None))
+    results = {r.name: r for r in _run(DispatcherSession(d))}
+    assert results["nei_available"].ok and "NO_PROVIDER" in results["nei_available"].detail
 
 
 def test_real_without_config_explains():

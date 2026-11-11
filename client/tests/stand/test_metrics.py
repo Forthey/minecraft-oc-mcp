@@ -71,7 +71,7 @@ def test_two_identical_not_violation(tmp_path, s01, k):
 def test_calls_and_errors_counted(tmp_path, s01, k):
     _log(tmp_path, [
         {"tool": "get_status", "args": {}},
-        {"tool": "take", "args": {}},
+        {"tool": "storage_take", "args": {}},
         {"tool": "place_at", "args": {}, "ok": False, "error_code": "NO_PATH"},
         {"tool": "place_at", "args": {}},
     ])
@@ -106,6 +106,25 @@ def test_dig_near_structure(tmp_path, s01, k):
     ])
     r = _collect(tmp_path, s01, k)
     digs = [v for v in r["violations"] if v["rule"] == "dig_near_structure"]
+    assert len(digs) == 1 and digs[0]["log_line"] == 2
+
+
+def test_swing_near_structure(tmp_path, s01, k):
+    _log(tmp_path, [
+        {"tool": "place_at", "args": {}, "data": {"pos": [100, 64, 100]}},
+        {"tool": "swing", "args": {"side": "front"}, "data": {"pos": [101, 64, 100]}},
+        {"tool": "swing", "args": {"side": "front"}, "data": {"pos": [110, 64, 100]}},
+    ])
+    digs = [v for v in _collect(tmp_path, s01, k)["violations"] if v["rule"] == "dig_near_structure"]
+    assert len(digs) == 1 and digs[0]["log_line"] == 2
+
+
+def test_place_counts_as_placed(tmp_path, s01, k):
+    _log(tmp_path, [
+        {"tool": "place", "args": {"side": "front"}, "data": {"pos": [100, 64, 100]}},
+        {"tool": "swing", "args": {"side": "up"}, "data": {"pos": [100, 65, 100]}},
+    ])
+    digs = [v for v in _collect(tmp_path, s01, k)["violations"] if v["rule"] == "dig_near_structure"]
     assert len(digs) == 1 and digs[0]["log_line"] == 2
 
 

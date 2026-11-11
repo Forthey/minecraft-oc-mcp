@@ -1,13 +1,18 @@
+"""Модель робота v2: движение, установка и разрушение блоков, зрение."""
+
 import copy
+import json
 
 import pytest
 
+from stand.fake_mcp.inventory import Inventory
 from stand.fake_mcp.sim import RobotSim
 from stand.knowledge import KNOWLEDGE_DIR, Knowledge
 from stand.scenario import SCENARIOS_DIR, load_scenario
 from stand.world.backend import MemoryWorld
 
 COBBLE = ("minecraft:cobblestone", 0)
+STONE = ("minecraft:stone", 0)
 
 
 @pytest.fixture(scope="module")
@@ -15,148 +20,151 @@ def k():
     return Knowledge.load(KNOWLEDGE_DIR)
 
 
-def _sim(k, sid="s01-wall", inventory=None, energy=1.0, setup=None, robot_pos=None):
-    s = copy.deepcopy(load_scenario(SCENARIOS_DIR / sid / "scenario.yaml"))
-    s.robot["inventory"] = inventory if inventory is not None else [{"item": "minecraft:cobblestone", "count": 16}]
+def _sim(k, inventory=None, energy=1.0, setup=None, pos=(100, 64, 105), facing="north"):
+    s = copy.deepcopy(load_scenario(SCENARIOS_DIR / "s01-wall" / "scenario.yaml"))
+    s.robot["inventory"] = inventory if inventory is not None else [{"item": "minecraft:cobblestone", "count": 9}]
     s.robot["energy"] = energy
-    if robot_pos:
-        s.robot["pos"] = robot_pos
+    s.robot["pos"] = list(pos)
+    s.robot["facing"] = facing
     if setup:
         s.setup_blocks.update(setup)
     world = MemoryWorld(s.scene_blocks())
     return RobotSim(s, k, world), world
 
 
-def test_place_at_sets_world_and_occ(k):
+def test_inventory_slot_helpers():
+    inv = Inventory()
+    inv.set_slot(3, "minecraft:stick", 5)
+    assert inv.slot(3) == ("minecraft:stick", 5)
+    assert inv.slot(1) is None
+    assert inv.first_slot_with("minecraft:stick") == 3
+    assert inv.first_slot_with("minecraft:planks") is None
+    inv.set_slot(3, None, 0)
+    assert inv.slot(3) is None
+
+
+def test_move_forward_and_blocked(k):
+    sim, _ = _sim(k, setup={(100, 64, 102): STONE})
+    r = sim.move("forward", 3)
+    assert r["ok"] is False and r["error_code"] == "BLOCKED"
+    assert r["message"] == "moved 2 of 3 blocks forward, blocked: solid"
+    assert sim.pos == (100, 64, 103)
+    ok = sim.move("up", 2)
+    assert ok["ok"] and ok["message"] == "Moved up 2 blocks." and sim.pos == (100, 66, 103)
+
+
+def test_move_region_edge_is_solid(k):
+    sim, _ = _sim(k, pos=(100, 64, 110), facing="south")
+    r = sim.move("forward", 1)
+    assert r["error_code"] == "BLOCKED" and r["message"] == "moved 0 of 1 blocks forward, blocked: solid"
+
+
+def test_turn_changes_front(k):
+    sim, _ = _sim(k)
+    r = sim.turn("right")
+    assert r["ok"] and r["message"] == "Turned right." and sim.facing == "east"
+    assert sim.side_pos("front") == (101, 64, 105)
+    sim.turn("around")
+    assert sim.facing == "west"
+    sim.turn("left")
+    assert sim.facing == "south"
+
+
+def test_place_from_slot_sets_world_and_placed(k):
     sim, world = _sim(k)
-    r = sim.place_at(100, 64, 100, "minecraft:cobblestone")
+    r = sim.place("front", 1)
     assert r["ok"], r
-    assert world.get((100, 64, 100)) == COBBLE
-    assert sim.occ[(100, 64, 100)] == COBBLE
-    assert sim.inventory.count("minecraft:cobblestone") == 15
-    # Робот стоит рядом с целью.
-    assert sum(abs(a - b) for a, b in zip(sim.pos, (100, 64, 100))) == 1
-    assert (100, 64, 100) in sim.placed
+    assert r["message"] == "Placed from slot 1 front: minecraft:cobblestone. 8 left in slot 1."
+    assert r["data"]["pos"] == [100, 64, 104]
+    assert world.get((100, 64, 104)) == COBBLE and sim.occ[(100, 64, 104)] == COBBLE
+    assert (100, 64, 104) in sim.placed
+    assert sim.inventory.slot(1) == ("minecraft:cobblestone", 8)
 
 
-def test_place_at_occupied_cant_place(k):
+def test_place_uses_selected_slot_by_default(k):
     sim, _ = _sim(k)
-    sim.place_at(100, 64, 100, "minecraft:cobblestone")
-    r = sim.place_at(100, 64, 100, "minecraft:cobblestone")
-    assert r == {**r, "ok": False, "error_code": "CANT_PLACE"}
+    r = sim.place("down")
+    assert r["error_code"] == "BLOCKED"  # под роботом пол
+    assert "down is occupied by minecraft:grass" in r["message"]
 
 
-def test_place_at_floor_cant_place(k):
-    sim, _ = _sim(k)
-    assert sim.place_at(100, 63, 100, "minecraft:cobblestone")["error_code"] == "CANT_PLACE"
+def test_place_empty_slot_and_occupied(k):
+    sim, _ = _sim(k, setup={(100, 64, 104): STONE})
+    empty = sim.place("front", 2)
+    assert empty["error_code"] == "NO_ITEM" and empty["message"] == "slot 2 is empty, nothing to place"
+    busy = sim.place("front", 1)
+    assert busy["error_code"] == "BLOCKED"
+    assert busy["message"] == ("cannot place from slot 1 front: block in the way; front is occupied by "
+                               "minecraft:stone (break it with swing first)")
 
 
-def test_place_at_enclosed_no_path(k):
-    sim, _ = _sim(k, "s03-obstacle")
-    r = sim.place_at(101, 65, 100, "minecraft:cobblestone")
-    assert r["error_code"] == "NO_PATH"
+def test_place_non_block_item(k):
+    sim, _ = _sim(k, inventory=[{"item": "minecraft:stick", "count": 2}])
+    r = sim.place("front", 1)
+    assert r["error_code"] == "CANT_PLACE" and r["message"] == "cannot place from slot 1 front: item is not a block"
 
 
-def test_place_at_from_side(k):
-    sim, _ = _sim(k)
-    r = sim.place_at(100, 64, 100, "minecraft:cobblestone", from_="up")
+def test_swing_breaks_and_collects(k):
+    sim, world = _sim(k, inventory=[], setup={(100, 64, 104): STONE})
+    r = sim.swing("front")
     assert r["ok"], r
-    assert sim.pos == (100, 65, 100)
-    assert sim.place_at(101, 64, 100, "minecraft:cobblestone", from_="down")["error_code"] == "NO_PATH"
-
-
-def test_place_at_unknown_and_missing_item(k):
-    sim, _ = _sim(k)
-    assert sim.place_at(100, 64, 100, "nomod:thing")["error_code"] == "UNKNOWN_ITEM"
-    assert sim.place_at(100, 64, 100, "minecraft:planks")["error_code"] == "NO_ITEM"
-    sim2, _ = _sim(k, inventory=[{"item": "minecraft:stick", "count": 2}])
-    assert sim2.place_at(100, 64, 100, "minecraft:stick")["error_code"] == "CANT_PLACE"
-
-
-def test_move_to_outside_region(k):
-    sim, _ = _sim(k)
-    assert sim.move_to(200, 64, 100)["error_code"] == "OUT_OF_RANGE"
-    assert sim.place_at(200, 64, 100, "minecraft:cobblestone")["error_code"] == "OUT_OF_RANGE"
-
-
-def test_move_to_avoid_and_steps(k):
-    sim, _ = _sim(k)
-    r = sim.move_to(100, 64, 101)
-    assert r["ok"] and r["data"]["pos"] == [100, 64, 101] and r["data"]["steps"] == 4
-    assert sim.energy == pytest.approx(1.0 - 4 * 0.0005)
-
-
-def test_move_to_occupied_target_avoid_blocked(k):
-    sim, _ = _sim(k, setup={(100, 64, 101): ("minecraft:stone", 0)})
-    assert sim.move_to(100, 64, 101)["error_code"] == "BLOCKED"
-
-
-def test_dig_through_breaks_and_collects(k):
-    sim, world = _sim(k, "s03-obstacle", inventory=[])
-    assert sim.move_to(101, 65, 100, "avoid")["error_code"] == "NO_PATH"
-    r = sim.move_to(101, 65, 100, "dig_through")
-    assert r["ok"], r
-    dug = [tuple(p) for p in r["data"]["dug"]]
-    assert len(dug) >= 1
-    for p in dug:
-        assert world.get(p) == ("minecraft:air", 0)
-        assert p not in sim.occ
-    assert sim.inventory.count("minecraft:stone") == len(dug)
-
-
-def test_dig_side(k):
-    sim, world = _sim(k, setup={(100, 64, 104): ("minecraft:stone", 0)}, inventory=[])
-    r = sim.dig("front")
-    assert r["ok"], r
+    assert r["message"] == ("Broke minecraft:stone (front); drops went to the inventory. no tool equipped.")
+    assert r["data"] == {"pos": [100, 64, 104], "block": "minecraft:stone"}
     assert world.get((100, 64, 104)) == ("minecraft:air", 0)
     assert sim.inventory.count("minecraft:stone") == 1
-    assert sim.dig("front")["error_code"] == "BLOCKED"
-    assert sim.dig("down")["ok"]
-    assert sim.inventory.count("minecraft:grass") == 1
+
+
+def test_swing_air(k):
+    sim, _ = _sim(k)
+    r = sim.swing("front")
+    assert r["error_code"] == "BLOCKED" and r["message"] == "nothing to hit on front (air)"
+
+
+def test_swing_bedrock_tool_broken(k):
+    sim, _ = _sim(k, setup={(100, 64, 104): ("minecraft:bedrock", 0)})
+    r = sim.swing("front")
+    assert r["error_code"] == "TOOL_BROKEN"
+    assert r["message"].startswith("cannot break minecraft:bedrock (front) with the equipped tool (no tool equipped).")
+
+
+def test_use_has_no_effect(k):
+    sim, _ = _sim(k)
+    r = sim.use("front")
+    assert r["ok"] and r["message"] == "Used front: nothing."
+
+
+def test_surroundings_relative_to_facing(k):
+    sim, _ = _sim(k, facing="east", setup={(101, 64, 105): STONE, (100, 64, 104): COBBLE})
+    r = sim.surroundings()
+    assert r["ok"]
+    sides = r["data"]["sides"]
+    assert sides["front"] == {"block": "minecraft:stone", "kind": "solid"}
+    assert sides["left"] == {"block": "minecraft:cobblestone", "kind": "solid"}
+    assert sides["right"] == {"block": "minecraft:air", "kind": "air"}
+    assert sides["down"]["kind"] == "solid"
+    assert "front: minecraft:stone (solid)" in r["message"].splitlines()
+
+
+def test_geo_scan_volume_limit_and_values(k):
+    sim, _ = _sim(k, setup={(100, 64, 104): STONE})
+    too_big = sim.geo_scan(width=8, depth=8, height=2)
+    assert too_big["error_code"] == "BLOCKED" and too_big["message"] == "width*depth*height must be <= 64"
+    r = sim.geo_scan(x=0, z=1, y=-1, width=1, depth=1, height=2)
+    assert r["ok"]
+    # Ось z робота смотрит вперёд (north): z=1 это клетка (100, *, 104). y=-1 пол, y=0 камень.
+    assert r["data"]["hardness"] == [[[1.5]], [[1.5]]]
+
+
+def test_world_info_shape(k):
+    sim, _ = _sim(k)
+    r = sim.world_info()
+    assert r["ok"]
+    assert r["data"] == {"robot_id": "fake-robot", "robot_name": "robot", "x": 100, "y": 64, "z": 105,
+                         "facing": "north", "world_id": "stand"}
+    assert json.loads(r["message"]) == r["data"]
 
 
 def test_no_energy(k):
     sim, _ = _sim(k, energy=0.0)
-    assert sim.move_to(100, 64, 101)["error_code"] == "NO_ENERGY"
-    assert sim.place_at(100, 64, 100, "minecraft:cobblestone")["error_code"] == "NO_ENERGY"
-    assert sim.pos == (100, 64, 105)
-
-
-def test_inspect_relative_sides(k):
-    sim, _ = _sim(k, setup={(100, 64, 104): ("minecraft:stone", 0), (101, 64, 105): ("minecraft:planks", 1)})
-    assert sim.inspect("front")["data"]["item"] == "minecraft:stone"
-    assert sim.inspect("right")["data"]["item"] == "minecraft:planks:1"
-    assert sim.inspect("down")["data"]["item"] == "minecraft:grass"
-    assert sim.inspect("up")["data"]["item"] == "minecraft:air"
-    assert sim.face("east")["ok"]
-    # Робот смотрит на восток: слева север, то есть (100, 64, 104).
-    assert sim.inspect("left")["data"]["item"] == "minecraft:stone"
-
-
-def test_move_low_level(k):
-    sim, _ = _sim(k, setup={(100, 64, 102): ("minecraft:stone", 0)})
-    r = sim.move("forward", 5)
-    assert r["error_code"] == "BLOCKED"
-    assert r["data"]["moved"] == 2 and sim.pos == (100, 64, 103)
-    assert sim.move("up", 1)["ok"] and sim.pos == (100, 65, 103)
-
-
-def test_scan_area_summary_and_full(k):
-    sim, _ = _sim(k)
-    sim.place_at(100, 64, 100, "minecraft:cobblestone")
-    box = {"from": [99, 64, 99], "to": [101, 64, 101]}
-    s = sim.scan_area(box)["data"]
-    assert s["cells"] == 9 and s["solid"] == 1 and s["air"] == 8
-    assert s["blocks"] == {"minecraft:cobblestone": 1}
-    full = sim.scan_area(box, "full")["data"]
-    assert full["blocks"] == [{"pos": [100, 64, 100], "item": "minecraft:cobblestone"}]
-    assert sim.scan_area({"from": [0, 64, 0], "to": [1, 64, 1]})["error_code"] == "OUT_OF_RANGE"
-
-
-def test_get_status_shape(k):
-    sim, _ = _sim(k)
-    d = sim.get_status()["data"]
-    assert set(d) == {"pos", "facing", "energy", "tool", "inventory", "warehouse"}
-    assert d["pos"] == [100, 64, 105] and d["facing"] == "north"
-    assert d["inventory"]["used"] == 1 and d["inventory"]["total"] == 16
-    assert d["warehouse"] == {"pos": [95, 64, 105], "side": "east"}
+    r = sim.move("forward", 1)
+    assert r["error_code"] == "NO_ENERGY" and r["message"] == "not enough energy"

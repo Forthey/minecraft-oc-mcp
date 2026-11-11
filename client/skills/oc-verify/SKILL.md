@@ -1,6 +1,6 @@
 ---
 name: oc-verify
-description: Use when checking a finished build stage or the final result of an OpenComputers robot task against spec.json - structural diff of placed blocks, slot contents and functional checks such as energy output or heat - and deciding PASS or FAIL.
+description: Use when checking a finished build stage or the final result of an OpenComputers robot task against spec.json - structural diff of placed blocks, slot contents and functional checks such as machine output - and deciding PASS or FAIL.
 ---
 
 # OC verify
@@ -21,14 +21,14 @@ When the stage has `acceptance.structural: true`:
 2. Call `verify_blocks(expected)`. If the reply is paged, request the next `page` until done.
 3. PASS needs `missing` and `wrong` to be empty.
 
-For `slots`, go next to each target, `face` it and call `inspect_container(side)`. Every planned slot must hold the planned item and count.
+For `slots`, `move_to` the cell next to each target, `face` it and call `storage_scan(front)`. Every planned slot must hold the planned item and count.
 
 ## Functional check
 
 For each `Check` in `acceptance.functional` (or in `final_acceptance` for the final check):
 
-1. Perform exactly the steps in `actions`, in order. Use `put`, `take`, `use` and `read_block_info` as the action says.
-2. Compare what you observe with `expect`. Write the actual readings into the report, for example "heat 1200/10000, 1400/10000, 1650/10000".
+1. Perform exactly the steps in `actions`, in order. Use `storage_put`, `storage_take`, `use` and `storage_scan` as the action says. There is no tool that reads machine energy or heat directly: observe what the action says to observe, for example the output slot with `storage_scan`.
+2. Compare what you observe with `expect`. Write the actual readings into the report, for example "output slot: 0, 2, 5 macerated dust after 10, 20, 30 s".
 3. A check passes only if the observation clearly meets `expect`. "Probably fine" is FAIL.
 
 For checks over time ("every 10 s for 60 s"), take every reading. Stop early only on a clear failure.
@@ -40,17 +40,17 @@ You may change the world in exactly two ways:
 1. The steps listed in `actions` of the checks you run.
 2. The `emergency_off` procedure from spec.json.
 
-Never place, dig, craft or move items to repair anything. Never run a check that has a gate in `safety.require_confirm` (its own `gate` field, or the gate of its stage) unless the orchestrator says the user confirmed it. Move only with `policy: avoid`.
+Never place, break (`swing`), craft or move items to repair anything. Never run a check that has a gate in `safety.require_confirm` (its own `gate` field, or the gate of its stage) unless the orchestrator says the user confirmed it. Move only with `policy: avoid`.
 
 ## Emergency off
 
 If a functional check on a dangerous setup goes wrong (heat rising, unexpected output, anything listed in `safety`):
 
-1. First run the `emergency_off` procedure from spec.json, at once, before writing anything.
-2. Confirm with `read_block_info` that it stopped.
+1. First run the `emergency_off` procedure from spec.json, at once, before writing anything. It is written as robot actions, usually `use` on a lever or `swing` of a block, or `storage_take` of the fuel.
+2. Confirm that it stopped the way the procedure says, for example `storage_scan` shows the fuel slot empty.
 3. Then write the report with verdict FAIL, all readings, and the note "emergency_off was run", so the orchestrator invalidates the undone stages.
 
-If `emergency_off` does not stop it, call `stop()` to abort any robot action still running (it does not stop the machine itself), and reply `status: FAILED` with `EMERGENCY` as the first word of the summary and what you observed. Only a person can act now, so the orchestrator stops and tells the user.
+If `emergency_off` does not stop it, do nothing else with the robot and reply `status: FAILED` with `EMERGENCY` as the first word of the summary and what you observed. Only a person can act now, so the orchestrator stops and tells the user.
 
 ## Report
 
