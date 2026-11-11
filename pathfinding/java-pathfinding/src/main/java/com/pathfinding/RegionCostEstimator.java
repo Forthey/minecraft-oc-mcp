@@ -152,30 +152,34 @@ public class RegionCostEstimator {
         if (mapA == null || mapB == null) return null;
 
         if (alongX) {
-            int[][] stitched = new int[512][1024];
-            // Если b восточнее a (b.x > a.x)
+            // Двигаемся по X (Восток/Запад). X расширяется до 1024, Z остается 512.
+            int[][] stitched = new int[1024][512]; // [X][Z]
             boolean bIsEast = b.x() > a.x();
             for (int x = 0; x < 512; x++) {
-                if (bIsEast) {
-                    System.arraycopy(mapA[x], 0, stitched[x], 0, 512);
-                    System.arraycopy(mapB[x], 0, stitched[x], 512, 512);
-                } else {
-                    System.arraycopy(mapB[x], 0, stitched[x], 0, 512);
-                    System.arraycopy(mapA[x], 0, stitched[x], 512, 512);
+                for (int z = 0; z < 512; z++) {
+                    if (bIsEast) {
+                        stitched[x][z] = mapA[x][z];
+                        stitched[x + 512][z] = mapB[x][z];
+                    } else {
+                        stitched[x][z] = mapB[x][z];
+                        stitched[x + 512][z] = mapA[x][z];
+                    }
                 }
             }
             return stitched;
         } else {
-            int[][] stitched = new int[1024][512];
-            // Если b южнее a (b.z > a.z)
+            // Двигаемся по Z (Север/Юг). X остается 512, Z расширяется до 1024.
+            int[][] stitched = new int[512][1024]; // [X][Z]
             boolean bIsSouth = b.z() > a.z();
             for (int x = 0; x < 512; x++) {
-                if (bIsSouth) {
-                    stitched[x] = mapA[x];
-                    stitched[x + 512] = mapB[x];
-                } else {
-                    stitched[x] = mapB[x];
-                    stitched[x + 512] = mapA[x];
+                for (int z = 0; z < 512; z++) {
+                    if (bIsSouth) {
+                        stitched[x][z] = mapA[x][z];
+                        stitched[x][z + 512] = mapB[x][z];
+                    } else {
+                        stitched[x][z] = mapB[x][z];
+                        stitched[x][z + 512] = mapA[x][z];
+                    }
                 }
             }
             return stitched;
