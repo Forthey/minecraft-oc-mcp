@@ -16,7 +16,7 @@ from stand.judge import judge
 from stand.knowledge import KNOWLEDGE_DIR, Knowledge
 from stand.rcon import Rcon
 from stand.runner import report
-from stand.runner.agents import AgentCfg, render_cmd, run_agent
+from stand.runner.agents import AgentCfg, render_cmd, render_env, run_agent
 from stand.runner.metrics import collect
 from stand.runner.usage import parse_usage, robot_calls
 from stand.runner.reset import ensure_server, full_reset, prepare_scene, reset_region
@@ -141,7 +141,7 @@ def run_one(
         cmd = render_cmd(agent, prompt, ws.mcp_config, ws.path, ws.mcp_args, scenario.path.parent)
         meta["cmd"] = cmd
         agent_run = run_agent(cmd, ws.path, scenario.timeout_s, run_dir / "transcript.jsonl",
-                              run_dir / "agent_stderr.log", agent.env)
+                              run_dir / "agent_stderr.log", render_env(agent))
         tasks = ws.path / ".oc-tasks"
         if tasks.exists():
             shutil.copytree(tasks, run_dir / "journal", dirs_exist_ok=True)

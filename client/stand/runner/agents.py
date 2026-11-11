@@ -61,26 +61,39 @@ def render_cmd(
     mcp_args: list[str] | None = None,
     scenario_dir: Path | None = None,
 ) -> list[str]:
-    """Подставляет значения в шаблон команды. Первый элемент ищется в PATH."""
+    """Подставляет значения в шаблон команды. Первый элемент ищется в PATH.
+
+    {python} это интерпретатор стенда, так агент-скрипт получает те же зависимости.
+    Части с путями вида "{scenario_dir}/script.json" нормализуются под ОС.
+    """
     values = {
         "{prompt}": prompt,
         "{mcp_config}": str(mcp_config) if mcp_config else "",
         "{workspace}": str(workspace),
         "{scenario_dir}": str(scenario_dir) if scenario_dir else "",
+        "{python}": sys.executable,
     }
+    path_keys = ("{workspace}", "{scenario_dir}")
     out: list[str] = []
     for part in a.cmd:
         if part == "{mcp_args}":
             out.extend(mcp_args or [])
             continue
+        is_path = any(k in part for k in path_keys) and part not in path_keys
         for key, val in values.items():
             part = part.replace(key, val)
-        out.append(part)
+        out.append(os.path.normpath(part) if is_path else part)
     exe = shutil.which(out[0])
     if exe is None:
         raise FileNotFoundError(f"agent executable {out[0]} not found in PATH")
     out[0] = exe
     return out
+
+
+def render_env(a: AgentCfg) -> dict[str, str]:
+    """Переменные окружения агента. {root} заменяется на корень репозитория."""
+    root = str(AGENTS_PATH.parents[1])
+    return {k: str(v).replace("{root}", root) for k, v in a.env.items()}
 
 
 def _kill_tree(proc: subprocess.Popen) -> None:

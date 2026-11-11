@@ -37,6 +37,17 @@ codex:
   mcp_format: codex_args
   usage_parser: codex_json
 
+# Агент без LLM: выполняет stand/scenarios/<id>/script.json. Проверяет стенд целиком
+# (runner, fake-MCP, мир, судья, метрики) бесплатно и детерминированно.
+script:
+  cmd: ["{python}", -m, stand.runner.script_agent, --mcp-config, "{mcp_config}",
+        --script, "{scenario_dir}/script.json"]
+  # Рабочая папка вне репозитория, поэтому пакет stand ищется по PYTHONPATH.
+  env: {PYTHONPATH: "{root}"}
+  skills_dir: null
+  mcp_format: claude_json
+  usage_parser: none
+
 opencode:
   cmd: [opencode, run, --auto, --format, json, "{prompt}"]
   skills_dir: .opencode/skills

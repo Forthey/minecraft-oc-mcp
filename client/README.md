@@ -8,6 +8,8 @@ MCP-контракт робота для команды: [docs/mcp-contract.md](
 
 Сценарии e2e-стенда и что из них показывать на демо: [docs/stand-scenarios.md](docs/stand-scenarios.md).
 
+E2E-стенд с метриками (сервер Minecraft, fake-MCP, судья, runner, переезд на реальный MCP): [stand/README.md](stand/README.md).
+
 ## Структура
 
 ```
@@ -21,7 +23,8 @@ skills/
   references/        контракт tools, обработка ошибок, конфиг, схема spec, примеры трасс
     examples/        oc-harness.yaml и пример spec.json
 tools/               структурный валидатор скиллов
-tests/               тесты валидатора и поведенческие сценарии
+tests/               тесты валидатора, поведенческие сценарии, тесты стенда (tests/stand)
+stand/               e2e-стенд: сервер, fake-MCP, сценарии, судья, runner, conformance
 ```
 
 Скиллы ссылаются на `references/` относительными путями (`../references/...`), поэтому при установке каталог `references/` должен лежать рядом с каталогами скиллов.

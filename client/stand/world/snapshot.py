@@ -109,13 +109,16 @@ def capture(
     settle: float = 0.5,
     attempts: int = 8,
 ) -> Snapshot:
-    """Сохраняет мир через save-all и читает снимок региона.
+    """Сохраняет мир через save-all flush и читает снимок региона.
 
-    В 1.7.10 save-all ставит чанки в очередь записи, а пишет их отдельный поток.
-    Поэтому снимок читается повторно, пока два чтения подряд не совпадут. Чтение
-    полузаписанного файла тоже просто повторяется.
+    Простой save-all в 1.7.10 только ставит чанки в очередь записи, и снимок мог
+    прочитать старые region-файлы. Вариант flush дописывает очередь до ответа.
+    Снимок всё равно читается повторно, пока два чтения подряд не совпадут: так
+    чтение полузаписанного файла просто повторяется.
     """
-    rcon.command("save-all")
+    reply = rcon.command("save-all flush")
+    if "flushEnd" not in reply:
+        raise RuntimeError(f"save-all flush did not finish: {reply!r}")
     previous = None
     for _ in range(attempts):
         time.sleep(settle)
