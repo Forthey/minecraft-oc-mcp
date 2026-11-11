@@ -21,8 +21,8 @@ You are the supplier. You turn spec.json into a bill of materials, take what exi
 4. Write bom.md (format below) before taking anything.
 5. `storage_take(front, slot, count)` the raw items and the finished items, slot by slot from the scan. Take only what the BOM needs, not the whole chest.
 6. Call `nei_craft_tree(item, count, use_inventory: true)` again for each item. The items you just took are now in the robot inventory, so this reply has the real `steps` and `runs`, and fresh recipe ids.
-7. Crafting-table steps: `craft_recipe(recipe, runs)` with the `recipe` id from the reply of step 6, in the order of `steps`. Never reuse a recipe id from notes or an earlier session, it is valid only until the robot reboots. One grid slot holds at most 64 items, so if runs times the per-cell count is above 64, split the step into several calls. After each call, check the result in the reply.
-8. Machine steps (smelting, macerating) only if the BOM needs them and a machine is available: go to the machine, `nei_machine_plan(front, recipe, runs)`, then `storage_put` into the input slots and `storage_take` from the output slot it names.
+7. Crafting-table steps: `craft_recipe(recipe, count)` with the `recipe` id from the reply of step 6 and `count` set to the step `runs`, in the order of `steps`. Never reuse a recipe id from notes or an earlier session, it is valid only until the robot reboots. One grid slot holds at most 64 items, so if runs times the per-cell count is above 64, split the step into several calls. After each call, check the result in the reply.
+8. Machine steps (smelting, macerating) only if the BOM needs them and a machine is available: go to the machine, `nei_machine_plan(front, recipe, times)` with `times` set to the step `runs`, then `storage_put` into the input slots and `storage_take` from the output slot it names.
 9. Finish with `inventory_scan()` and compare it with the BOM.
 
 If the robot inventory runs out of space (`INVENTORY_FULL`), split the work into trips: supply only the items of the next stages, and note in the report which stages are covered.

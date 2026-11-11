@@ -109,7 +109,7 @@ def test_swing_breaks_and_collects(k):
     r = sim.swing("front")
     assert r["ok"], r
     assert r["message"] == ("Broke minecraft:stone (front); drops went to the inventory. no tool equipped.")
-    assert r["data"] == {"pos": [100, 64, 104], "block": "minecraft:stone"}
+    assert r["data"] == {"pos": [100, 64, 104]}
     assert world.get((100, 64, 104)) == ("minecraft:air", 0)
     assert sim.inventory.count("minecraft:stone") == 1
 
@@ -137,12 +137,11 @@ def test_surroundings_relative_to_facing(k):
     sim, _ = _sim(k, facing="east", setup={(101, 64, 105): STONE, (100, 64, 104): COBBLE})
     r = sim.surroundings()
     assert r["ok"]
-    sides = r["data"]["sides"]
-    assert sides["front"] == {"block": "minecraft:stone", "kind": "solid"}
-    assert sides["left"] == {"block": "minecraft:cobblestone", "kind": "solid"}
-    assert sides["right"] == {"block": "minecraft:air", "kind": "air"}
-    assert sides["down"]["kind"] == "solid"
-    assert "front: minecraft:stone (solid)" in r["message"].splitlines()
+    lines = r["message"].splitlines()
+    assert "front: minecraft:stone (solid)" in lines
+    assert "left: minecraft:cobblestone (solid)" in lines
+    assert "right: minecraft:air (air)" in lines
+    assert any(line.startswith("down: ") and line.endswith("(solid)") for line in lines)
 
 
 def test_geo_scan_volume_limit_and_values(k):
@@ -152,7 +151,7 @@ def test_geo_scan_volume_limit_and_values(k):
     r = sim.geo_scan(x=0, z=1, y=-1, width=1, depth=1, height=2)
     assert r["ok"]
     # Ось z робота смотрит вперёд (north): z=1 это клетка (100, *, 104). y=-1 пол, y=0 камень.
-    assert r["data"]["hardness"] == [[[1.5]], [[1.5]]]
+    assert r["message"].splitlines()[1:] == ["y=-1", "1.5", "y=0", "1.5"]
 
 
 def test_world_info_shape(k):

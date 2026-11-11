@@ -27,7 +27,7 @@ from stand.fake_mcp.geometry import DIRS, FACINGS, add as _add, scale as _scale
 from stand.fake_mcp.inventory import Container, Inventory
 from stand.fake_mcp.nei import CRAFT_GRID, FakeNei, NeiError, nei_id
 from stand.fake_mcp.pathfinding import astar
-from stand.knowledge import CRAFTING, Knowledge, normalize_id
+from stand.knowledge import Knowledge, normalize_id
 from stand.scenario import Scenario
 from stand.world.backend import WorldBackend
 from stand.world.blocks import AIR, Block, Pos, baseline_block, format_block, parse_block
@@ -187,18 +187,18 @@ class RobotSim(Additions):
         for done in range(n):
             nxt = _add(self.pos, d)
             if not self._free(nxt):
-                return err("BLOCKED", texts.moved_partial(done, n, direction), {"pos": list(self.pos), "moved": done})
+                return err("BLOCKED", texts.moved_partial(done, n, direction), {"pos": list(self.pos), "facing": self.facing})
             if not self._spend(steps=1):
-                return err("NO_ENERGY", texts.NO_ENERGY, {"pos": list(self.pos), "moved": done})
+                return err("NO_ENERGY", texts.NO_ENERGY, {"pos": list(self.pos), "facing": self.facing})
             self.pos = nxt
-        return ok(texts.moved(direction, n), {"pos": list(self.pos), "moved": n})
+        return ok(texts.moved(direction, n), {"pos": list(self.pos), "facing": self.facing})
 
     def turn(self, direction: str) -> dict:
         turn = TURNS.get(direction)
         if turn is None:
             return err("BLOCKED", f"turn failed: unknown direction {direction}")
         self.facing = FACINGS[(FACINGS.index(self.facing) + turn) % 4]
-        return ok(texts.turned(direction), {"facing": self.facing})
+        return ok(texts.turned(direction), {"pos": list(self.pos), "facing": self.facing})
 
     # Мир
 
@@ -224,7 +224,7 @@ class RobotSim(Additions):
             return err("NO_ENERGY", texts.NO_ENERGY)
         self._put_block(target, block)
         self.inventory.set_slot(slot, item, count - 1)
-        return ok(texts.placed(slot, side, format_block(block), count - 1), {"pos": list(target), "slot": slot})
+        return ok(texts.placed(slot, side, format_block(block), count - 1), {"pos": list(target)})
 
     def swing(self, side: str = "front", sneaky: bool = False) -> dict:
         target = self.side_pos(side)
@@ -241,13 +241,13 @@ class RobotSim(Additions):
         if not self._spend(actions=1):
             return err("NO_ENERGY", texts.NO_ENERGY)
         self._break(target)
-        return ok(texts.broke(name, side, self._tool_text()), {"pos": list(target), "block": name})
+        return ok(texts.broke(name, side, self._tool_text()), {"pos": list(target)})
 
     def use(self, side: str = "front", sneaky: bool = False, duration: float | None = None) -> dict:
         # Без эффекта: действие только попадает в action log.
         if self.side_pos(side) is None:
             return err("BLOCKED", f"use {side} failed: unknown side")
-        return ok(texts.used(side), {"side": side})
+        return ok(texts.used(side))
 
     # Зрение
 
@@ -259,7 +259,7 @@ class RobotSim(Additions):
             kind = "air" if b == AIR else "solid"
             sides[side] = {"block": format_block(b), "kind": kind}
             lines.append(f"{side}: {format_block(b)} ({kind})")
-        return ok("\n".join(lines), {"sides": sides})
+        return ok("\n".join(lines))
 
     def geo_scan(self, x: int = -4, z: int = -4, y: int = 0, width: int = 8, depth: int = 8,
                  height: int = 1) -> dict:
@@ -284,7 +284,7 @@ class RobotSim(Additions):
         for dy, rows in enumerate(layers):
             lines.append(f"y={y + dy}")
             lines.extend(" ".join("." if v == 0 else f"{v:g}" for v in row) for row in rows)
-        return ok("\n".join(lines), {"axes": "robot", "hardness": layers})
+        return ok("\n".join(lines))
 
     def world_info(self) -> dict:
         info = {"robot_id": "fake-robot", "robot_name": "robot", "x": self.pos[0], "y": self.pos[1],
@@ -358,7 +358,7 @@ class RobotSim(Additions):
             self.inventory.set_slot(int(robot_slot), item, (target[1] if target else 0) + n)
         else:
             self.inventory.add(item, n)
-        return ok(texts.took(side, slot), {"moved": n, "item": nei_id(item)})
+        return ok(texts.took(side, slot))
 
     def storage_put(self, side: str, robot_slot: int, count: int | None = None, slot: int | None = None) -> dict:
         robot_slot = int(robot_slot)
@@ -386,7 +386,7 @@ class RobotSim(Additions):
         else:
             c.add(item, n)
         self.inventory.set_slot(robot_slot, item, have - n)
-        return ok(texts.put_done(robot_slot, side), {"moved": n, "item": nei_id(item)})
+        return ok(texts.put_done(robot_slot, side))
 
     def inventory_transfer(self, from_slot: int, to_slot: int, count: int | None = None) -> dict:
         a, b = int(from_slot), int(to_slot)
@@ -403,7 +403,7 @@ class RobotSim(Additions):
             return err("INVENTORY_FULL", texts.transfer_failed(a, b, f"slot {b} is full"))
         self.inventory.set_slot(a, src[0], src[1] - n)
         self.inventory.set_slot(b, src[0], (dst[1] if dst else 0) + n)
-        return ok(texts.transferred(a, b), {"moved": n})
+        return ok(texts.transferred(a, b))
 
     def equip(self, slot: int) -> dict:
         slot = int(slot)
@@ -415,7 +415,7 @@ class RobotSim(Additions):
         old = (self.tool, self.tool_count) if self.tool else (None, 0)
         self.tool, self.tool_count = content
         self.inventory.set_slot(slot, old[0], old[1])
-        return ok(texts.equipped(slot), {"tool": nei_id(self.tool)})
+        return ok(texts.equipped(slot))
 
     # Крафт
 
@@ -491,7 +491,7 @@ class RobotSim(Additions):
             self.inventory.set_slot(CRAFT_GRID[cell - 1], item, have - crafts)
         have = self.inventory.slot(slot)
         self.inventory.set_slot(slot, out_item, (have[1] if have else 0) + n)
-        return ok(texts.CRAFTED, {"crafted": n, "item": nei_id(out_item)})
+        return ok(texts.CRAFTED)
 
     def _nei_err(self, e: NeiError) -> dict:
         return err(NEI_CODES.get(e.code, "UNKNOWN"), str(e))
@@ -550,7 +550,7 @@ class RobotSim(Additions):
         total = (have[1] if have else 0) + n
         self.inventory.set_slot(slot, out_item, total)
         message = texts.crafted_recipe(count, slot, total, nei_id(out_item), self.nei.label(out_item))
-        return ok(message, {"slot": slot, "item": nei_id(out_item), "count": total})
+        return ok(message)
 
     # Знания (NEI)
 

@@ -71,3 +71,22 @@ def test_script_agent_entry_renders(tmp_path):
     cmd = render_cmd(a, "ignored", tmp_path / "mcp.json", tmp_path, scenario_dir=SCENARIOS_DIR / "s01-wall")
     assert cmd[0] == sys.executable
     assert cmd[cmd.index("--script") + 1] == str(S01_SCRIPT)
+
+
+def test_script_agent_expected_error(tmp_path):
+    """Шаг с expect должен вернуть этот код. Тогда скрипт идёт дальше, иначе это провал."""
+    s01 = SCENARIOS_DIR / "s01-wall" / "scenario.yaml"
+    far = {"tool": "move_to", "args": {"x": 500, "y": 64, "z": 500}}
+    script = tmp_path / "expect.json"
+    script.write_text(json.dumps([{**far, "expect": "OUT_OF_RANGE"}, {"tool": "get_status", "args": {}}]))
+    r = _run(tmp_path, script, s01)
+    assert r.returncode == 0, r.stdout
+    assert re.search(r"phase=final .* status=DONE delta=2/2", _journal(tmp_path)[-1])
+
+    script.write_text(json.dumps([{**far, "expect": "NO_PATH"}]))
+    r = _run(tmp_path, script, s01)
+    assert r.returncode == 1 and "expected NO_PATH, got OUT_OF_RANGE" in r.stdout
+
+    script.write_text(json.dumps([{"tool": "get_status", "args": {}, "expect": "NO_PATH"}]))
+    r = _run(tmp_path, script, s01)
+    assert r.returncode == 1 and "expected NO_PATH, got ok" in r.stdout

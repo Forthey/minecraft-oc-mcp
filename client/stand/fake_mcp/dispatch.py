@@ -88,7 +88,7 @@ TOOL_SPECS: dict[str, ToolSpec] = {
     "nei_recipe": ToolSpec("knowledge", "One recipe in full, with the robot slot for every grid cell.",
                            _obj(["recipe"], recipe=TEXT, lang=TEXT)),
     "nei_craft_tree": ToolSpec("knowledge", "Whole crafting tree: steps in order, raw materials, machines needed.",
-                               _obj(["item"], item=ITEM, count={"type": "integer", "minimum": 1}, use_inventory=BOOL, lang=TEXT)),
+                               _obj(["item"], item=ITEM, count={"type": "integer", "minimum": 1, "maximum": 1000000}, use_inventory=BOOL, lang=TEXT)),
     "nei_machine_plan": ToolSpec("knowledge", "Slots of the machine on side for the ingredients and the result of a recipe.",
                                  _obj(["recipe"], side=SIDE3, recipe=TEXT, times={"type": "integer", "minimum": 1}, lang=TEXT)),
     "search_docs": ToolSpec("knowledge", "Search mod documentation about mechanics, multiblocks and machine setup.",

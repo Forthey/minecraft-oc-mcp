@@ -6,7 +6,7 @@ import anyio
 import pytest
 
 from stand.config import load_config
-from stand.conformance.checks import CONFORMANCE_DIR, connect, load_scene, run_checks
+from stand.conformance.checks import connect, load_scene, run_checks
 from stand.fake_mcp.action_log import ActionLog
 from stand.fake_mcp.dispatch import TOOL_SPECS, Dispatcher
 from stand.fake_mcp.envelope import ok

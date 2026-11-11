@@ -123,3 +123,10 @@ def test_judge_result_is_json_serializable(k):
     back = json.loads(json.dumps(out))
     assert back["details"]["wrong"] == [{"pos": [101, 64, 100], "expected": "minecraft:cobblestone",
                                          "actual": "minecraft:planks"}]
+
+
+def test_robot_block_is_not_extra(k):
+    """Настоящий робот OpenComputers стоит в регионе блоком, а в движении оставляет afterimage."""
+    blocks = {**WALL, (100, 64, 103): ("OpenComputers:robot", 2), (100, 65, 103): ("OpenComputers:robotAfterimage", 0)}
+    r = _judge(k, blocks)
+    assert r.passed and r.extra == []

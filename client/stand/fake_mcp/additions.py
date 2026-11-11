@@ -22,7 +22,7 @@ class Additions:
     """move_to, face, place_at, get_status, verify_blocks, search_docs."""
 
     def _outside(self, target) -> dict:
-        return err("OUT_OF_RANGE", f"{list(target)} is outside the allowed area", {"area": self.region.to_json()})
+        return err("OUT_OF_RANGE", f"{list(target)} is outside the allowed area")
 
     def move_to(self, x: int, y: int, z: int, policy: str = "avoid") -> dict:
         target = (int(x), int(y), int(z))
@@ -97,7 +97,7 @@ class Additions:
         if not placed["ok"]:
             return placed
         return ok(f"Placed {nei_id(short)} at {list(target)} from slot {slot}.",
-                  {"pos": list(target), "slot": slot, "robot": list(self.pos), "steps": steps})
+                  {"pos": list(target), "slot": slot})
 
     def get_status(self) -> dict:
         inventory = [{"slot": i, "count": c[1], "name": nei_id(c[0])}

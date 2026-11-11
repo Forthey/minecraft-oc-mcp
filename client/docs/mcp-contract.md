@@ -58,17 +58,17 @@
 Каждый tool возвращает конверт обычным результатом MCP:
 
 ```json
-{"ok": true, "message": "Placed from slot 1 front: minecraft:cobblestone. 8 left in slot 1.", "data": {"pos": [100, 64, 100], "slot": 1}}
+{"ok": true, "message": "Placed from slot 1 front: minecraft:cobblestone. 8 left in slot 1.", "data": {"pos": [100, 64, 100]}}
 ```
 
 ```json
-{"ok": false, "error_code": "BLOCKED", "message": "moved 2 of 3 blocks forward, blocked: solid", "data": {"pos": [100, 64, 103], "moved": 2}}
+{"ok": false, "error_code": "BLOCKED", "message": "moved 2 of 3 blocks forward, blocked: solid", "data": {"pos": [100, 64, 103], "facing": "north"}}
 ```
 
 - `ok`: выполнилось ли действие.
 - `error_code`: только при `ok: false`, один из кодов из раздела "Коды ошибок".
 - `message`: для tools `oc-mcp` их текст дословно, для добавок короткий текст в том же стиле.
-- `data`: всегда объект. У `nei_*` и `world_info` это их JSON, у `inventory_scan` и `storage_scan` список слотов `{"slots": [{"slot", "count", "name", "label"}]}`, у добавок своя структура (ниже).
+- `data`: всегда объект. У `nei_*` и `world_info` это их JSON, у `inventory_scan` и `storage_scan` список слотов `{"slots": [{"slot", "count", "name", "label"}]}`. У `move` и `turn` позиция и направление после действия `{"pos", "facing"}`, у `place` и `swing` клетка `{"pos"}`, если позиция робота известна. У добавок своя структура (ниже). У остальных tools `oc-mcp` объект пустой, всё нужное есть в `message`.
 
 Сам `oc-mcp` отвечает текстом, а ошибки отдаёт как JSON-RPC error. Конверт и коды ошибок добавляет наш адаптер.
 
@@ -214,3 +214,4 @@
 - 2026-11-10: уточнено, что `data` всегда объект и списки лежат в его полях. Пример рецептов приведён к рецептам IC2 2.2.827 (в рецепте есть `ingredients`). В правило синхронизации добавлен fake-MCP стенда.
 - 2026-11-11: коды `UNSUPPORTED` и `NO_PROVIDER` для реального MCP (oc-mcp): нет нужного компонента у робота и нет данных NEI без игрока онлайн.
 - 2026-11-11: v2, база oc-mcp. 28 tools: tools `oc-mcp` с их именами и аргументами плюс добавки `move_to`, `face`, `place_at`, `get_status`, `verify_blocks`, `search_docs`, `get_action_log`. Удалены `read_block_info`, `stop`, `drop`, `get_known_map` и tools v1 с заменой в `oc-mcp`. Код `UNKNOWN`. Склад перенесён из `get_status` в `oc-harness.yaml`.
+- 2026-11-11: правило `data` для сквозных tools `oc-mcp` записано явно. fake-MCP отдаёт ровно те поля, что и адаптер, это проверяет тест паритета `tests/adapter/test_adapter_parity.py`.

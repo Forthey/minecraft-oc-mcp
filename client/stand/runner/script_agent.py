@@ -4,7 +4,9 @@ python -m stand.runner.script_agent --mcp-config <mcp.json> --script <script.jso
 
 Нужен, чтобы проверить стенд целиком без модели: runner, fake-MCP, мир, судью и
 метрики. Сервер MCP берётся из того же mcp.json, что получает Claude Code, поэтому
-цепочка та же. Скрипт это JSON-список [{"tool": ..., "args": {...}}].
+цепочка та же. Скрипт это JSON-список [{"tool": ..., "args": {...}}]. Шаг с полем
+"expect": "<код ошибки>" обязан вернуть эту ошибку, тогда скрипт идёт дальше. Так
+записываются сценарии с отказами вроде NO_PATH и CONNECTION_LOST.
 
 Агент пишет журнал .oc-tasks/script/journal.md в формате оркестратора: строку
 постройки, строку проверки (если в скрипте был verify_blocks) и финал. Финал DONE,
@@ -37,8 +39,11 @@ def _line(phase: str, stage: str, status: str, done: int, total: int, calls: int
             f"delta={done}/{total} calls={calls} budget=-")
 
 
-def _problem(tool: str, env: dict) -> str | None:
-    """Почему вызов считается неудачным, или None."""
+def _problem(tool: str, env: dict, expect: str | None = None) -> str | None:
+    """Почему вызов считается неудачным, или None. expect это код ошибки, который шаг должен вернуть."""
+    if expect is not None:
+        got = "ok" if env["ok"] else env.get("error_code")
+        return None if got == expect else f"expected {expect}, got {got}"
     if not env["ok"]:
         return f"{env.get('error_code')}: {env['message']}"
     if tool == "verify_blocks":
@@ -64,7 +69,7 @@ async def run_script(spec: dict, calls: list[dict], journal: Path) -> bool:
             await session.initialize()
             for i, call in enumerate(calls, 1):
                 env = parse_envelope(await session.call_tool(call["tool"], call.get("args") or {}))
-                problem = _problem(call["tool"], env)
+                problem = _problem(call["tool"], env, call.get("expect"))
                 print(f"{i:3} {call['tool']:16} {'FAILED' if problem else 'ok'}" + (f"  {problem}" if problem else ""))
                 if problem:
                     failure = problem

@@ -160,3 +160,9 @@ def test_macerator_elsewhere_fails(k):
     out = judge(_world(s, {(101, 64, 100): ("IC2:blockMachine", 3)}, {(102, 64, 100): ("IC2:blockGenerator", 0)}), s, k)
     assert not out["passed"]
     assert out["details"]["structures"]["macerator"]["found"] is False
+
+
+def test_robot_block_is_not_extra(k):
+    s = _scenario("s07-relative")
+    out = _judge(s, k, _wall(100, 102), _wall(95, 102), extra={(100, 64, 104): ("OpenComputers:robot", 2)})
+    assert out["passed"] and out["extra_count"] == 0, out

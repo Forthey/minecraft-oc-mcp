@@ -11,6 +11,7 @@ import pytest
 from stand.config import load_config
 from stand.runner.agents import AgentCfg, load_agents
 from stand.runner.run import find_scenario, run_one
+from stand.scenario import SCENARIOS_DIR
 
 pytestmark = pytest.mark.server
 
@@ -35,6 +36,15 @@ def test_s01_script_passes_twice(tmp_path):
         assert r["violations"] == []
     summary = (tmp_path / "summary.md").read_text(encoding="utf-8")
     assert "| s01-wall | script | 2 | 2/2 |" in summary
+
+
+@pytest.mark.parametrize("sid", sorted(p.parent.name for p in SCENARIOS_DIR.glob("*/script.json")))
+def test_scenario_script_passes_on_server(tmp_path, sid):
+    """Эталонный script.json сценария проходит на живом сервере, мир fake-MCP совпадает с сервером."""
+    r = _results(run_one(load_config(), find_scenario(sid), load_agents()["script"], 1, runs_dir=tmp_path))
+    assert r["status"] == "PASS", r
+    assert r["judge"]["extra_count"] == 0 and r["judge"]["snapshot_mismatch"] == []
+    assert r["false_success"] is False and r["violations"] == []
 
 
 def test_s07_wrong_direction_fails(tmp_path):

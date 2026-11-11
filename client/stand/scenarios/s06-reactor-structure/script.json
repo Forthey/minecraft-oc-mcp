@@ -1,0 +1,15 @@
+[
+ {"tool": "move_to", "args": {"x": 96, "y": 64, "z": 105}},
+ {"tool": "face", "args": {"direction": "west"}},
+ {"tool": "storage_scan", "args": {"side": "front"}},
+ {"tool": "storage_take", "args": {"side": "front", "slot": 1, "count": 1}},
+ {"tool": "storage_take", "args": {"side": "front", "slot": 2, "count": 6}},
+ {"tool": "place_at", "args": {"x": 100, "y": 64, "z": 100, "item": "IC2:blockReactorChamber"}},
+ {"tool": "place_at", "args": {"x": 100, "y": 65, "z": 100, "item": "IC2:blockGenerator:5"}},
+ {"tool": "place_at", "args": {"x": 101, "y": 65, "z": 100, "item": "IC2:blockReactorChamber"}},
+ {"tool": "place_at", "args": {"x": 99, "y": 65, "z": 100, "item": "IC2:blockReactorChamber"}},
+ {"tool": "place_at", "args": {"x": 100, "y": 65, "z": 101, "item": "IC2:blockReactorChamber"}},
+ {"tool": "place_at", "args": {"x": 100, "y": 65, "z": 99, "item": "IC2:blockReactorChamber"}},
+ {"tool": "place_at", "args": {"x": 100, "y": 66, "z": 100, "item": "IC2:blockReactorChamber"}},
+ {"tool": "verify_blocks", "args": {"expected": [{"pos": [100, 64, 100], "item": "IC2:blockReactorChamber"}, {"pos": [100, 65, 100], "item": "IC2:blockGenerator:5"}, {"pos": [101, 65, 100], "item": "IC2:blockReactorChamber"}, {"pos": [99, 65, 100], "item": "IC2:blockReactorChamber"}, {"pos": [100, 65, 101], "item": "IC2:blockReactorChamber"}, {"pos": [100, 65, 99], "item": "IC2:blockReactorChamber"}, {"pos": [100, 66, 100], "item": "IC2:blockReactorChamber"}]}}
+]

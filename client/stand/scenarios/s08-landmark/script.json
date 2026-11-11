@@ -1,0 +1,16 @@
+[
+ {"tool": "move_to", "args": {"x": 96, "y": 64, "z": 105}},
+ {"tool": "face", "args": {"direction": "west"}},
+ {"tool": "storage_scan", "args": {"side": "front"}},
+ {"tool": "storage_take", "args": {"side": "front", "slot": 1, "count": 9}},
+ {"tool": "place_at", "args": {"x": 102, "y": 64, "z": 100, "item": "minecraft:planks"}},
+ {"tool": "place_at", "args": {"x": 103, "y": 64, "z": 100, "item": "minecraft:planks"}},
+ {"tool": "place_at", "args": {"x": 104, "y": 64, "z": 100, "item": "minecraft:planks"}},
+ {"tool": "place_at", "args": {"x": 102, "y": 65, "z": 100, "item": "minecraft:planks"}},
+ {"tool": "place_at", "args": {"x": 103, "y": 65, "z": 100, "item": "minecraft:planks"}},
+ {"tool": "place_at", "args": {"x": 104, "y": 65, "z": 100, "item": "minecraft:planks"}},
+ {"tool": "place_at", "args": {"x": 102, "y": 66, "z": 100, "item": "minecraft:planks"}},
+ {"tool": "place_at", "args": {"x": 103, "y": 66, "z": 100, "item": "minecraft:planks"}},
+ {"tool": "place_at", "args": {"x": 104, "y": 66, "z": 100, "item": "minecraft:planks"}},
+ {"tool": "verify_blocks", "args": {"expected": [{"pos": [102, 64, 100], "item": "minecraft:planks"}, {"pos": [103, 64, 100], "item": "minecraft:planks"}, {"pos": [104, 64, 100], "item": "minecraft:planks"}, {"pos": [102, 65, 100], "item": "minecraft:planks"}, {"pos": [103, 65, 100], "item": "minecraft:planks"}, {"pos": [104, 65, 100], "item": "minecraft:planks"}, {"pos": [102, 66, 100], "item": "minecraft:planks"}, {"pos": [103, 66, 100], "item": "minecraft:planks"}, {"pos": [104, 66, 100], "item": "minecraft:planks"}]}}
+]

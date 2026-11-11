@@ -2,7 +2,6 @@ import copy
 import json
 from pathlib import Path
 
-import pytest
 
 from stand.fake_mcp.action_log import ActionLog
 from stand.fake_mcp.dispatch import TOOL_SPECS, Dispatcher
@@ -101,7 +100,7 @@ def test_from_argument_mapped(tmp_path):
     d, _, _ = _dispatcher(tmp_path)
     r = d.call("place_at", {"x": 100, "y": 64, "z": 100, "item": "minecraft:cobblestone", "from": "up"})
     assert r["ok"], r
-    assert r["data"]["robot"] == [100, 65, 100]
+    assert d.sim.pos == (100, 65, 100)  # подход сверху, как просили в from
 
 
 def test_bad_arguments(tmp_path):
