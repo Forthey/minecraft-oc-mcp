@@ -99,15 +99,27 @@ def _harness(s: Scenario, cfg: Config) -> dict:
     }
 
 
-def _codex_args(spec: dict) -> list[str]:
-    # Значения -c разбираются как TOML. Строка JSON с экранированием подходит как
-    # базовая строка TOML, в том числе для путей Windows с обратными слешами.
-    out = ["-c", f"mcp_servers.{MCP_NAME}.command={json.dumps(spec['command'])}",
-           "-c", f"mcp_servers.{MCP_NAME}.args={json.dumps(spec['args'])}"]
+# Codex по умолчанию ждёт ответа tool 60 с, а move_to по длинному пути идёт дольше.
+CODEX_TOOL_TIMEOUT_S = 600
+
+
+def codex_mcp_args(spec: dict, name: str = MCP_NAME) -> list[str]:
+    """Флаги -c, которыми Codex получает stdio MCP-сервер без правки ~/.codex/config.toml.
+
+    Значения -c разбираются как TOML. Строка JSON с экранированием подходит как
+    базовая строка TOML, в том числе для путей Windows с обратными слешами.
+    """
+    out = ["-c", f"mcp_servers.{name}.command={json.dumps(spec['command'])}",
+           "-c", f"mcp_servers.{name}.args={json.dumps(spec['args'])}",
+           "-c", f"mcp_servers.{name}.tool_timeout_sec={CODEX_TOOL_TIMEOUT_S}"]
     for key, val in spec.get("env", {}).items():
-        out += ["-c", f"mcp_servers.{MCP_NAME}.env.{key}={json.dumps(val)}"]
-    out += ["-c", 'approval_policy="never"']
+        out += ["-c", f"mcp_servers.{name}.env.{key}={json.dumps(val)}"]
     return out
+
+
+def _codex_args(spec: dict) -> list[str]:
+    # Подтверждать вызовы некому: прогон идёт без человека.
+    return codex_mcp_args(spec) + ["-c", 'approval_policy="never"']
 
 
 def build_workspace(

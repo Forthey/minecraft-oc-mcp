@@ -62,3 +62,32 @@ def test_client_mods_copies_and_moves_foreign(mods_cfg, tmp_path):
     assert cli.cmd_client_mods(mods_cfg, _args(dest, move_foreign=True)) == 0
     assert sorted(p.name for p in dest.iterdir()) == ["a.jar"]
     assert (dest.parent / "mods-disabled" / "fabric-1.21.jar").exists()
+
+
+def test_workspace_for_all_agents(tmp_path, monkeypatch):
+    import json
+
+    from demo import agent_workspace as aw
+
+    monkeypatch.setattr(aw, "WS", tmp_path / "ws")
+    monkeypatch.setattr(aw, "LOGS", tmp_path / "logs")
+    ws = aw.build()
+    for rel in aw.SKILL_DIRS.values():
+        assert (ws / rel / "oc-orchestrator" / "SKILL.md").exists()
+    assert "robot" in json.loads((ws / ".mcp.json").read_text(encoding="utf-8"))["mcpServers"]
+    opencode = json.loads((ws / "opencode.json").read_text(encoding="utf-8"))["mcp"]["robot"]
+    assert opencode["type"] == "local" and opencode["command"][1:3] == ["-m", "adapter"]
+    assert "skills/oc-orchestrator/SKILL.md" in (ws / "AGENTS.md").read_text(encoding="utf-8")
+    assert "oc-orchestrator" in (ws / "CLAUDE.md").read_text(encoding="utf-8")
+
+
+def test_agent_command(monkeypatch):
+    monkeypatch.setattr(cli.shutil, "which", lambda name: f"/bin/{name}")
+    codex = cli.agent_command("codex", ["--model", "m"])
+    assert codex[0] == "/bin/codex" and codex[-2:] == ["--model", "m"]
+    assert any(a.startswith("mcp_servers.robot.command=") for a in codex)
+    assert "mcp_servers.robot.tool_timeout_sec=600" in codex
+    assert cli.agent_command("claude", []) == ["/bin/claude"]
+    monkeypatch.setattr(cli.shutil, "which", lambda name: None)
+    with pytest.raises(FileNotFoundError):
+        cli.agent_command("opencode", [])

@@ -72,12 +72,12 @@
   `adapter`, `stand`, `agent` в editable-режиме, `memory/` входит в workspace как пакет `memory-mcp`.
   `PYTHONPATH` больше не нужен, `python -m adapter` и `python -m stand...` работают из любого каталога.
   `uv sync` запускайте из корня: внутри `memory/` он синхронизирует только зависимости memory.
-- **Тесты.** `uv run pytest -q` в корне гоняет все четыре набора: `adapter/tests`, `stand/tests`, `agent/tests`,
-  `memory/tests`. Маркер `server` и `-m "not server"` по умолчанию остались прежними.
-- **`adapter/tests/conftest.py` → `adapter_harness.py`.** В нём были только хелперы, их импортировали через
+- **Тесты.** `uv run pytest -q` в корне гоняет все наборы: `adapter/tests`, `stand/tests`, `agent/tests`,
+  `memory/tests` и `demo/tests`. Маркер `server` и `-m "not server"` по умолчанию остались прежними.
+- **`adapter/tests/conftest.py` переименован в `adapter_harness.py`.** В нём были только хелперы, их импортировали через
   `from conftest import ...`. В монорепо три `conftest.py`, и импорт подхватывал чужой. Теперь
   `from adapter_harness import bridge, make_sim`.
-- **Импорт валидатора скиллов:** `from tools.validate_skills import ...` → `from agent.tools.validate_skills import ...`.
+- **Импорт валидатора скиллов:** было `from tools.validate_skills import ...`, стало `from agent.tools.validate_skills import ...`.
 - **`oc_mcp_dir` в `stand/config.yaml`.** Ключ означает каталог, в котором лежит `bridge/`. Раньше `../oc-mcp`,
   теперь `.` (корень монорепо), это значение по умолчанию. Если в вашем `stand/config.local.yaml`
   есть `oc_mcp_dir: ../oc-mcp`, удалите строку.
@@ -105,9 +105,9 @@ git log -- 'pathfinding/'                 # всё по pathfinding
      можно скопировать или пересоздать через `uv run python -m stand.server setup --pin`;
    - `stand/runs/` при желании.
 3. Если в старом `minecraft-oc-memory-mcp/` были `data/` (база памяти) или `local/`, перенесите их в `memory/data/` и `memory/local/`.
-4. Демо: `uv run oc up`, затем `claude` в `demo/workspace`.
-5. В конфигах MCP-клиентов поменяйте пути: `oc-mcp/bridge/server.py` → `bridge/server.py`,
-   python из `minecraft-oc-mcp-client/.venv` → корневой `.venv`.
+4. Демо: `uv run oc up`, затем `uv run oc agent claude` (или `codex`, `opencode`).
+5. В конфигах MCP-клиентов поменяйте пути: `oc-mcp/bridge/server.py` на `bridge/server.py`,
+   python из `minecraft-oc-mcp-client/.venv` на корневой `.venv`.
 
 ## Известные проблемы, перенесённые как есть
 

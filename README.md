@@ -9,12 +9,16 @@ MCP для управления роботом OpenComputers (Minecraft 1.7.10) 
 Что осталось доделать: [TODO.md](TODO.md).
 
 ```
-агент (Claude Code, opencode, Codex) + agent/skills
-  │ MCP stdio
-  ├─► adapter/  контракт v2: конверт {ok, error_code, message, data}, move_to, place_at, verify_blocks
-  │     │ MCP stdio (дочерний процесс)
-  │     └─► bridge/  MCP-сервер + HTTP :8765 ◄── poll ── robot/  oc_mcp.lua на роботе
-  └─► memory/   память агента: POI, предпочтения, эпизоды (SQLite)
+агент (Claude Code, Codex, opencode) + agent/skills
+  |
+  +-- MCP stdio --> adapter/  контракт v2: конверт {ok, error_code, message, data}, move_to, place_at, verify_blocks
+  |                   |
+  |                   +-- MCP stdio (дочерний процесс) --> bridge/  MCP-сервер + HTTP :8765
+  |                                                          ^
+  |                                                          | poll
+  |                                                        robot/  oc_mcp.lua на роботе
+  |
+  +-- MCP stdio --> memory/  память агента: POI, предпочтения, эпизоды (SQLite)
 ```
 
 ## Компоненты
@@ -28,7 +32,7 @@ MCP для управления роботом OpenComputers (Minecraft 1.7.10) 
 | `agent/` | Скиллы агента (`agent/skills/`), их валидатор и поведенческие сценарии | [agent/README.md](agent/README.md) |
 | `stand/` | E2E-стенд: сервер Minecraft, fake-MCP, сценарии, судья, runner, conformance | [stand/README.md](stand/README.md) |
 | `pathfinding/` | Pathfinder по сейву мира на Java и прототип на Python. Пока ни к чему не подключён | [pathfinding/java/README.md](pathfinding/java/README.md) |
-| `demo/` | Интерактивное демо: Claude Code управляет настоящим роботом на сервере стенда. CLI `uv run oc` | [demo/README.md](demo/README.md) |
+| `demo/` | Интерактивное демо: агент (Claude Code, Codex или opencode) управляет настоящим роботом на сервере стенда. CLI `uv run oc` | [demo/README.md](demo/README.md) |
 | `docs/` | Общие документы: сборка робота, контракт MCP, заметки о реальном MCP, сценарии стенда | [docs/robot-build.md](docs/robot-build.md) |
 
 ## Python

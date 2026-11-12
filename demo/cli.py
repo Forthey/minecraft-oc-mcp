@@ -6,7 +6,8 @@
   uv run oc status                что запущено и что настроено
   uv run oc give <ник>            op и предметы для Navigation Upgrade игроку онлайн
   uv run oc client-mods [--dest]  скопировать моды сервера в клиент
-  uv run oc workspace             пересобрать demo/workspace (скиллы, .mcp.json)
+  uv run oc workspace             пересобрать demo/workspace (скиллы и конфиги MCP для всех агентов)
+  uv run oc agent <агент> [...]   запустить claude, codex или opencode в demo/workspace
 
 Все команды работают из любого каталога и на любой ОС.
 """
@@ -146,7 +147,7 @@ def cmd_up(cfg: Config, args) -> int:
     print("  robot shell, first time:")
     for c in lua_server.robot_commands():
         print(f"    {c}")
-    print(f"  agent:                     cd {agent_workspace.WS} && claude")
+    print("  agent:  uv run oc agent claude   (or codex, opencode)")
     return 0
 
 
@@ -234,6 +235,29 @@ def cmd_workspace(cfg: Config, args) -> int:
     return 0
 
 
+def agent_command(agent: str, extra: list[str]) -> list[str]:
+    """Команда запуска агента в demo/workspace. Claude Code и opencode берут MCP из файлов папки,
+    Codex проектный конфиг в непроверенной папке не читает, поэтому сервер передаётся флагами -c."""
+    from stand.runner.workspace import codex_mcp_args
+
+    exe = shutil.which(agent)
+    if exe is None:
+        raise FileNotFoundError(f"{agent} is not in PATH")
+    if agent == "codex":
+        return [exe, *codex_mcp_args(agent_workspace.robot_server(), agent_workspace.MCP_NAME), *extra]
+    return [exe, *extra]
+
+
+def cmd_agent(cfg: Config, args) -> int:
+    ws = agent_workspace.build()
+    extra = args.extra[1:] if args.extra[:1] == ["--"] else args.extra
+    cmd = agent_command(args.agent, extra)
+    if not process.is_running(cfg):
+        print("note: minecraft server is not running, move_to/place_at/verify_blocks need it (uv run oc up)")
+    print(f"{args.agent} in {ws}")
+    return subprocess.call(cmd, cwd=ws)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="oc", description="OpenComputers robot demo on the stand server.")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -249,9 +273,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--dest", type=Path, default=None, help=f"client mods folder (default {default_client_mods()})")
     p.add_argument("--move-foreign", action="store_true", help="move other jars out of the mods folder")
     sub.add_parser("workspace", help="rebuild demo/workspace")
+    p = sub.add_parser("agent", help="run an agent in demo/workspace with the robot MCP server")
+    p.add_argument("agent", choices=agent_workspace.AGENTS)
+    p.add_argument("extra", nargs=argparse.REMAINDER, help="arguments for the agent, e.g. -- --model haiku")
     args = parser.parse_args(argv)
     handlers = {"setup": cmd_setup, "up": cmd_up, "down": cmd_down, "status": cmd_status, "give": cmd_give,
-                "client-mods": cmd_client_mods, "workspace": cmd_workspace}
+                "client-mods": cmd_client_mods, "workspace": cmd_workspace, "agent": cmd_agent}
     try:
         return handlers[args.cmd](load_config(), args)
     except (RuntimeError, FileNotFoundError, RconError) as e:
