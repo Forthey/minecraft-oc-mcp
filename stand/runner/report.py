@@ -54,6 +54,15 @@ def _judge_section(judge: dict | None) -> list[str]:
     return out
 
 
+def _memory(m: dict | None) -> str:
+    if not m:
+        return "-"
+    if not m.get("used"):
+        return "не открывалась"
+    return (f"сессий {m['agent_sessions']}, мест +{m['pois_added']}, уроков +{m['episodes_added']}, "
+            f"фактов +{m['facts_added']}, склад {'запомнен' if m['warehouse_remembered'] else 'не запомнен'}")
+
+
 def render_report(r: dict) -> str:
     """Markdown-отчёт одного прогона."""
     usage = r.get("usage") or {}
@@ -76,6 +85,7 @@ def render_report(r: dict) -> str:
         f"{_fmt(usage.get('output_tokens'))} |",
         f"| Стоимость, $ | {_fmt(usage.get('cost_usd'), 4)} |",
         f"| Точность spec.json | {(r.get('spec_accuracy') or {}).get('accuracy', '-')} |",
+        f"| Память | {_memory(r.get('memory'))} |",
         "",
     ]
     if usage.get("agent_error"):

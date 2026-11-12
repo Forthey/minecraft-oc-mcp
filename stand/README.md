@@ -47,6 +47,8 @@ uv run python -m stand.server setup --pin
 ```bash
 python -m stand.server start | stop | status           сервер
 python -m stand.runner run --scenario s01-wall --agent claude [--repeat 3] [--profile no-docs]
+python -m stand.runner run --scenario s01-wall --agent claude --repeat 2 --memory-chain   память переходит между повторами
+python -m stand.runner run --scenario s09-memory --agent claude --memory-from stand/runs/<прогон>
 python -m stand.runner suite --agents claude,codex [--scenarios s01-wall,s07-relative] [--repeat 3]
 python -m stand.runner prepare --scenario s03-obstacle  сбросить регион и поставить сцену (для ручной проверки)
 python -m stand.runner judge --scenario s03-obstacle    оценить текущий мир без агента
@@ -78,6 +80,7 @@ pytest -m server
 | `journal/` | копия `.oc-tasks` агента: journal.md, decisions.md, tried.md, spec.json |
 | `snapshot.json`, `judge.json` | снимок региона и вердикт судьи |
 | `private/mcp_scenario.yaml` | копия сценария без ожидания, которую получил fake-MCP |
+| `memory.db` | база памяти агента (сервер `memory`) после прогона, её можно передать следующему через `--memory-from` |
 
 `stand/runs/summary.md` собирает таблицу сценарий на агент: доля PASS по повторам, медианы времени, вызовов и стоимости, ложные успехи, нарушения.
 
@@ -91,6 +94,13 @@ pytest -m server
 - `TIMEOUT`: вышло время сценария, дерево процессов агента убито
 - `CRASH`: агент упал с ненулевым кодом, и судья не принял постройку
 - `SKIPPED`: сценарий требует fake-MCP, а стенд работает с реальным.
+
+**Память** (`memory` в `results.json`, строка «Память» в report.md). Каждый прогон получает сервер `memory` с базой
+в рабочей папке агента, по умолчанию пустой, чтобы прогоны оставались повторяемыми. Сценарий может положить в неё
+факты заранее (`memory.seed`) и убрать склад из `oc-harness.yaml` (`memory.hide_warehouse`), так устроен s09-memory.
+`--memory-from <папка прогона>` начинает с базы прошлого прогона, `--memory-chain` передаёт её между повторами.
+Поля: `used` (агент открыл сессию), `agent_sessions`, `pois_added`, `episodes_added`, `facts_added` и
+`warehouse_remembered` (в базе есть сундук на месте склада). Агент `script` память не использует.
 
 **Ложный успех:** агент записал в журнал `phase=final status=DONE`, а судья дал FAIL. Это самый важный сигнал, что проверки в скиллах не работают.
 

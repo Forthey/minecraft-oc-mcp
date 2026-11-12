@@ -1,0 +1,26 @@
+# Склад есть только в памяти агента: oc-harness.yaml его не называет (memory.hide_warehouse),
+# а memory.seed кладёт его в базу memory до прогона вместе с уроком прошлой задачи.
+# Агент без памяти не знает, где материалы, и спрашивает игрока (статус ASKED).
+id: s09-memory
+title: Стена 3x3 со складом из памяти
+goal: >
+  Build a 3x3 wall of cobblestone. Its lower-left block is at (100, 64, 100),
+  it extends along +X and up (+Y), z stays 100. Materials are in the warehouse chest.
+region: {from: [90, 63, 90], to: [115, 72, 110]}
+robot: {pos: [100, 64, 105], facing: north}
+warehouse: {pos: [108, 64, 102], side: west, items: {minecraft:cobblestone: 32}}
+memory:
+  hide_warehouse: true
+  seed:
+    pois:
+      - {kind: chest, label: warehouse, pos: [108, 64, 102], tags: [warehouse], source: observed}
+    episodes:
+      - goal: build a cobblestone wall from the warehouse
+        outcome: partial
+        obstacles: [place_at failed on the upper rows before the lower ones were placed]
+        lesson: take all blocks in one trip, then build the wall row by row from the bottom
+        tags: [wall, place_at]
+expected:
+  mode: fixed
+  fill: [{from: [100, 64, 100], to: [102, 66, 100], block: minecraft:cobblestone}]
+timeout_s: 900

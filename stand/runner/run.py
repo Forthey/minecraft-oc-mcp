@@ -15,7 +15,7 @@ from stand.config import ROOT, Config
 from stand.judge import judge
 from stand.knowledge import KNOWLEDGE_DIR, Knowledge
 from stand.rcon import Rcon
-from stand.runner import report
+from stand.runner import memory, report
 from stand.runner.agents import AgentCfg, render_cmd, render_env, run_agent
 from stand.runner.metrics import collect
 from stand.runner.usage import parse_usage, robot_calls
@@ -128,8 +128,12 @@ def run_one(
     profile: str | None = None,
     runs_dir: Path = RUNS_DIR,
     keep_workspace: bool = False,
+    memory_from: Path | None = None,
 ) -> Path:
-    """Полный прогон. Возвращает папку прогона с results.json."""
+    """Полный прогон. Возвращает папку прогона с results.json.
+
+    memory_from: папка прошлого прогона, его memory.db становится начальной памятью агента.
+    """
     run_id = f"{datetime.now():%Y%m%d-%H%M%S}-{scenario.id}-{agent.name}-{n}"
     run_dir = runs_dir / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -148,6 +152,9 @@ def run_one(
     prepare(cfg, scenario, k, fresh)
 
     ws = build_workspace(run_dir, scenario, agent, cfg, profile)
+    if memory_from is not None:
+        meta["memory_from"] = str(memory_from)
+    memory_before = memory.prepare_db(ws.memory_db, scenario, memory_from / "memory.db" if memory_from else None)
     try:
         if cfg.robot_mcp == "real" and cfg.real.get("real_setup"):
             subprocess.run([*cfg.real["real_setup"], str(scenario.path)], check=True)
@@ -159,6 +166,8 @@ def run_one(
         tasks = ws.path / ".oc-tasks"
         if tasks.exists():
             shutil.copytree(tasks, run_dir / "journal", dirs_exist_ok=True)
+        memory.copy_db(ws.memory_db, run_dir / "memory.db")
+        meta["memory"] = memory.metrics(run_dir / "memory.db", memory_before, scenario)
     finally:
         if keep_workspace:
             meta["workspace"] = str(ws.path)

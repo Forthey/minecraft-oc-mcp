@@ -17,6 +17,7 @@ from pathlib import Path
 import yaml
 
 from stand.config import ROOT, Config, render_real_command
+from stand.runner import memory
 from stand.runner.agents import AgentCfg
 from stand.scenario import Scenario
 from stand.server.setup import mod_versions
@@ -38,6 +39,8 @@ class Workspace:
     mcp_config: Path | None
     mcp_args: list[str] = field(default_factory=list)
     harness: dict = field(default_factory=dict)
+    # База памяти агента (сервер memory), её готовит и читает runner.
+    memory_db: Path | None = None
 
     def cleanup(self) -> None:
         shutil.rmtree(self.path, ignore_errors=True)
@@ -78,7 +81,7 @@ def _server_spec(run_dir: Path, s: Scenario, cfg: Config, profile: str | None) -
 
 def _harness(s: Scenario, cfg: Config) -> dict:
     versions = mod_versions(cfg.mods_manifest)
-    return {
+    harness = {
         "versions": {
             "minecraft": "1.7.10",
             "ic2": versions.get("ic2", ""),
@@ -96,7 +99,12 @@ def _harness(s: Scenario, cfg: Config) -> dict:
         # Подтверждать гейты некому: прогон идёт без человека.
         "safety": {"require_confirm": []},
         "research": {"sources": ["rag", "web", "model"], "cache_dir": ".oc-knowledge"},
+        "memory": {"profile": memory.PROFILE},
     }
+    if s.memory.get("hide_warehouse"):
+        # Склад агент должен найти в памяти: сценарий кладёт его туда через memory.seed.
+        del harness["warehouse"]
+    return harness
 
 
 # Codex по умолчанию ждёт ответа tool 60 с, а move_to по длинному пути идёт дольше.
@@ -141,22 +149,28 @@ def build_workspace(
     (ws / "oc-harness.yaml").write_text(yaml.safe_dump(harness, sort_keys=False, allow_unicode=True), encoding="utf-8")
 
     spec = _server_spec(run_dir, s, cfg, profile)
+    db = ws / "memory.db"
+    mem = memory.server_spec(db)
     if agent.mcp_format == "claude_json":
         server = dict(spec, type="http") if "url" in spec else spec
         path = ws / "mcp.json"
-        path.write_text(json.dumps({"mcpServers": {MCP_NAME: server}}, indent=2), encoding="utf-8")
-        return Workspace(ws, path, harness=harness)
+        path.write_text(json.dumps({"mcpServers": {MCP_NAME: server, memory.MCP_NAME: mem}}, indent=2),
+                        encoding="utf-8")
+        return Workspace(ws, path, harness=harness, memory_db=db)
     if agent.mcp_format == "opencode_json":
         if "url" in spec:
             server = {"type": "remote", "url": spec["url"]}
         else:
             server = {"type": "local", "command": [spec["command"], *spec["args"]], "environment": spec["env"]}
-        (ws / "opencode.json").write_text(json.dumps({"mcp": {MCP_NAME: server}}, indent=2), encoding="utf-8")
-        return Workspace(ws, None, harness=harness)
+        mem_server = {"type": "local", "command": [mem["command"], *mem["args"]], "environment": mem["env"]}
+        (ws / "opencode.json").write_text(json.dumps({"mcp": {MCP_NAME: server, memory.MCP_NAME: mem_server}},
+                                                     indent=2), encoding="utf-8")
+        return Workspace(ws, None, harness=harness, memory_db=db)
     if agent.mcp_format == "codex_args":
         if "url" in spec:
             args = ["-c", f"mcp_servers.{MCP_NAME}.url={json.dumps(spec['url'])}", "-c", 'approval_policy="never"']
         else:
             args = _codex_args(spec)
-        return Workspace(ws, None, args, harness=harness)
+        args += codex_mcp_args(mem, memory.MCP_NAME)
+        return Workspace(ws, None, args, harness=harness, memory_db=db)
     raise ValueError(f"unknown mcp_format {agent.mcp_format}")

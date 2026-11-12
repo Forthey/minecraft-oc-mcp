@@ -1,6 +1,7 @@
 """CLI runner.
 
 python -m stand.runner run --scenario <id> --agent <name> [--repeat N] [--fresh] [--profile p] [--keep-workspace]
+python -m stand.runner run --scenario <id> --agent <a> [--memory-from <run> | --repeat N --memory-chain]
 python -m stand.runner suite --agents a,b [--scenarios s01-wall,s02-craft] [--repeat N] [--profile p]
 python -m stand.runner prepare --scenario <id> [--fresh]   сбросить регион и поставить сцену
 python -m stand.runner judge --scenario <id>               оценить текущий мир без агента
@@ -12,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from stand.config import load_config
 from stand.knowledge import KNOWLEDGE_DIR, Knowledge
@@ -32,6 +34,10 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--fresh", action="store_true", help="full world reset before the first run")
     p_run.add_argument("--profile", default=None, help="override the scenario capability profile")
     p_run.add_argument("--keep-workspace", action="store_true", help="do not delete the agent workspace")
+    p_run.add_argument("--memory-from", type=Path, default=None,
+                       help="run folder whose memory.db the agent starts with (default: empty memory)")
+    p_run.add_argument("--memory-chain", action="store_true",
+                       help="with --repeat: every run starts with the memory of the previous one")
 
     p_suite = sub.add_parser("suite", help="run scenarios for several agents and rebuild the summary")
     p_suite.add_argument("--agents", required=True, help="comma separated agent names")
@@ -94,11 +100,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.agent not in agents:
         parser.error(f"unknown agent {args.agent}, known: {', '.join(agents)}")
+    memory_from = args.memory_from
     for n in range(1, args.repeat + 1):
         run_dir = run_one(cfg, scenario, agents[args.agent], n, fresh=args.fresh and n == 1,
-                          profile=args.profile, keep_workspace=args.keep_workspace)
+                          profile=args.profile, keep_workspace=args.keep_workspace, memory_from=memory_from)
         results = json.loads((run_dir / "results.json").read_text(encoding="utf-8"))
         print(f"{results['status']:8} {run_dir}")
+        if args.memory_chain:
+            memory_from = run_dir
     return 0
 
 

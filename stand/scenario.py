@@ -51,6 +51,8 @@ class Scenario:
     timeout_s: int
     path: Path
     raw: dict = field(repr=False, default_factory=dict)
+    # Память агента в прогоне: hide_warehouse и seed, см. stand/runner/memory.py.
+    memory: dict = field(default_factory=dict)
 
     def scene_blocks(self) -> dict[Pos, Block]:
         """Блоки, которые стенд ставит до запуска агента: setup_blocks и сундук склада."""
@@ -153,6 +155,7 @@ def load_scenario(path: Path) -> Scenario:
         timeout_s=int(data["timeout_s"]),
         path=Path(path).resolve(),
         raw=data,
+        memory=data.get("memory", {}),
     )
 
 

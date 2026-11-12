@@ -127,6 +127,41 @@
       "properties": {"pass_accuracy": {"type": "number", "minimum": 0, "maximum": 1},
                      "max_extra": {"type": "integer", "minimum": 0}}
     },
-    "timeout_s": {"type": "integer", "minimum": 1}
+    "timeout_s": {"type": "integer", "minimum": 1},
+    "memory": {
+      "description": "Память агента (memory/): hide_warehouse убирает склад из oc-harness.yaml, seed кладёт факты до прогона",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "hide_warehouse": {"type": "boolean"},
+        "seed": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "pois": {"type": "array", "items": {
+              "type": "object", "required": ["kind", "label", "pos"], "additionalProperties": false,
+              "properties": {
+                "kind": {"enum": ["chest", "ore", "machine", "portal", "hazard", "base", "waypoint", "other"]},
+                "label": {"type": "string", "minLength": 1}, "pos": {"$ref": "#/$defs/pos"},
+                "radius": {"type": "integer", "minimum": 0}, "item_uid": {"type": "string"},
+                "tags": {"type": "array", "items": {"type": "string"}},
+                "source": {"enum": ["observed", "told", "inferred"]}
+              }
+            }},
+            "episodes": {"type": "array", "items": {
+              "type": "object", "required": ["goal", "lesson"], "additionalProperties": false,
+              "properties": {
+                "goal": {"type": "string"}, "lesson": {"type": "string"},
+                "outcome": {"enum": ["success", "partial", "failed"]},
+                "obstacles": {"type": "array", "items": {"type": "string"}},
+                "tags": {"type": "array", "items": {"type": "string"}}
+              }
+            }},
+            "preferences": {"type": "array", "items": {
+              "type": "object", "required": ["key", "value"], "additionalProperties": false,
+              "properties": {"key": {"type": "string"}, "value": {"type": "string"}}
+            }}
+          }
+        }
+      }
+    }
   }
 }
