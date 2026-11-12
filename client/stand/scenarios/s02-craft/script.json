@@ -1,0 +1,14 @@
+[
+ {"tool": "move_to", "args": {"x": 96, "y": 64, "z": 105}},
+ {"tool": "face", "args": {"direction": "west"}},
+ {"tool": "storage_scan", "args": {"side": "front"}},
+ {"tool": "storage_take", "args": {"side": "front", "slot": 1, "count": 1}},
+ {"tool": "nei_recipes", "args": {"item": "minecraft:planks:0"}},
+ {"tool": "craft_recipe", "args": {"recipe": "r0480444c7f792b19", "count": 1}},
+ {"tool": "inventory_scan", "args": {}},
+ {"tool": "place_at", "args": {"x": 100, "y": 64, "z": 100, "item": "minecraft:planks"}},
+ {"tool": "place_at", "args": {"x": 101, "y": 64, "z": 100, "item": "minecraft:planks"}},
+ {"tool": "place_at", "args": {"x": 100, "y": 64, "z": 101, "item": "minecraft:planks"}},
+ {"tool": "place_at", "args": {"x": 101, "y": 64, "z": 101, "item": "minecraft:planks"}},
+ {"tool": "verify_blocks", "args": {"expected": [{"pos": [100, 64, 100], "item": "minecraft:planks"}, {"pos": [101, 64, 100], "item": "minecraft:planks"}, {"pos": [100, 64, 101], "item": "minecraft:planks"}, {"pos": [101, 64, 101], "item": "minecraft:planks"}]}}
+]

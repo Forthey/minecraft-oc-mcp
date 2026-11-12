@@ -1,0 +1,24 @@
+# Stretch: только каркас реактора IC2 (реактор и шесть камер на гранях), без слотов и топлива.
+id: s06-reactor-structure
+title: Каркас ядерного реактора IC2
+goal: >
+  Build the structure of an IC2 Nuclear Reactor with all six Reactor Chambers.
+  The reactor block must be at (100, 65, 100). Build the structure only:
+  do not put any components or fuel inside. Everything needed is in the warehouse chest.
+region: {from: [90, 63, 90], to: [115, 72, 110]}
+robot: {pos: [100, 64, 105], facing: north}
+warehouse:
+  pos: [95, 64, 105]
+  side: east
+  items: {IC2:blockGenerator:5: 1, IC2:blockReactorChamber: 6}
+expected:
+  mode: fixed
+  fill:
+    - {pos: [100, 65, 100], block: IC2:blockGenerator:5}
+    - {pos: [101, 65, 100], block: IC2:blockReactorChamber}
+    - {pos: [99, 65, 100], block: IC2:blockReactorChamber}
+    - {pos: [100, 65, 101], block: IC2:blockReactorChamber}
+    - {pos: [100, 65, 99], block: IC2:blockReactorChamber}
+    - {pos: [100, 66, 100], block: IC2:blockReactorChamber}
+    - {pos: [100, 64, 100], block: IC2:blockReactorChamber}
+timeout_s: 1800

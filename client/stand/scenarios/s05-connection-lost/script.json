@@ -1,0 +1,18 @@
+[
+ {"tool": "move_to", "args": {"x": 96, "y": 64, "z": 105}},
+ {"tool": "face", "args": {"direction": "west"}},
+ {"tool": "storage_scan", "args": {"side": "front"}},
+ {"tool": "storage_take", "args": {"side": "front", "slot": 1, "count": 9}},
+ {"tool": "place_at", "args": {"x": 100, "y": 64, "z": 100, "item": "minecraft:cobblestone"}},
+ {"tool": "place_at", "args": {"x": 101, "y": 64, "z": 100, "item": "minecraft:cobblestone"}},
+ {"tool": "place_at", "args": {"x": 102, "y": 64, "z": 100, "item": "minecraft:cobblestone"}},
+ {"tool": "place_at", "args": {"x": 100, "y": 65, "z": 100, "item": "minecraft:cobblestone"}},
+ {"tool": "place_at", "args": {"x": 101, "y": 65, "z": 100, "item": "minecraft:cobblestone"}, "expect": "CONNECTION_LOST"},
+ {"tool": "get_status", "args": {}},
+ {"tool": "verify_blocks", "args": {"expected": [{"pos": [100, 64, 100], "item": "minecraft:cobblestone"}, {"pos": [101, 64, 100], "item": "minecraft:cobblestone"}, {"pos": [102, 64, 100], "item": "minecraft:cobblestone"}, {"pos": [100, 65, 100], "item": "minecraft:cobblestone"}, {"pos": [101, 65, 100], "item": "minecraft:cobblestone"}]}},
+ {"tool": "place_at", "args": {"x": 102, "y": 65, "z": 100, "item": "minecraft:cobblestone"}},
+ {"tool": "place_at", "args": {"x": 100, "y": 66, "z": 100, "item": "minecraft:cobblestone"}},
+ {"tool": "place_at", "args": {"x": 101, "y": 66, "z": 100, "item": "minecraft:cobblestone"}},
+ {"tool": "place_at", "args": {"x": 102, "y": 66, "z": 100, "item": "minecraft:cobblestone"}},
+ {"tool": "verify_blocks", "args": {"expected": [{"pos": [100, 64, 100], "item": "minecraft:cobblestone"}, {"pos": [101, 64, 100], "item": "minecraft:cobblestone"}, {"pos": [102, 64, 100], "item": "minecraft:cobblestone"}, {"pos": [100, 65, 100], "item": "minecraft:cobblestone"}, {"pos": [101, 65, 100], "item": "minecraft:cobblestone"}, {"pos": [102, 65, 100], "item": "minecraft:cobblestone"}, {"pos": [100, 66, 100], "item": "minecraft:cobblestone"}, {"pos": [101, 66, 100], "item": "minecraft:cobblestone"}, {"pos": [102, 66, 100], "item": "minecraft:cobblestone"}]}}
+]

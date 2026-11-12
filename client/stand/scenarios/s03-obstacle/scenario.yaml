@@ -1,0 +1,20 @@
+# Место стены закрыто каменным коробом со всех сторон. Без dig_through путь не найти,
+# move_to и place_at с policy avoid дают NO_PATH. Камень короба можно ломать (removable),
+# судья не считает его исчезновение лишними изменениями.
+id: s03-obstacle
+title: Стена внутри каменного короба
+goal: >
+  Build a 3x3 wall of cobblestone. Its lower-left block is at (100, 64, 100),
+  it extends along +X and up (+Y), z stays 100. The place is enclosed by a stone box:
+  you may break the stone of that box, but do not break anything else.
+region: {from: [90, 63, 90], to: [115, 72, 110]}
+robot: {pos: [100, 64, 105], facing: north}
+warehouse: {pos: [95, 64, 105], side: east, items: {minecraft:cobblestone: 32}}
+setup_blocks:
+  - {from: [99, 64, 99], to: [103, 67, 101], block: minecraft:stone, removable: true}
+  - {from: [100, 64, 100], to: [102, 66, 100], block: minecraft:air}
+expected:
+  mode: fixed
+  fill: [{from: [100, 64, 100], to: [102, 66, 100], block: minecraft:cobblestone}]
+scoring: {pass_accuracy: 1.0, max_extra: 0}
+timeout_s: 1200

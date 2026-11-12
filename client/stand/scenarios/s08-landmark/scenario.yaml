@@ -1,0 +1,22 @@
+# Ориентир в мире: сундук. "Слева, если смотреть с юга" значит западнее сундука.
+# Ориентир это не склад, склад стоит в другом месте.
+id: s08-landmark
+title: Стена из досок слева от сундука
+goal: >
+  There is a chest at (105, 64, 100). Build a 3x3 wall of oak planks to the left of
+  that chest when you look at it from the south. The wall must start next to the chest
+  or with at most one block of gap. Materials are in the warehouse chest at (95, 64, 105).
+region: {from: [90, 63, 90], to: [115, 72, 110]}
+robot: {pos: [100, 64, 105], facing: north}
+warehouse: {pos: [95, 64, 105], side: east, items: {minecraft:planks: 12}}
+setup_blocks:
+  - {pos: [105, 64, 100], block: minecraft:chest}
+expected:
+  mode: relational
+  structures:
+    - id: wall
+      pattern: {fill: [{from: [0, 0, 0], to: [2, 2, 0], block: minecraft:planks}]}
+      rotations: [0, 90, 180, 270]
+      anchor:
+        near_block: {pos: [105, 64, 100], side: west, max_gap: 1}
+timeout_s: 900

@@ -1,0 +1,6 @@
+__pycache__
+stand/server/instance/
+stand/server/world-template/
+stand/server/mods-cache/*.jar
+stand/runs/
+stand/config.local.yaml

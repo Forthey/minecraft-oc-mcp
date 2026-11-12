@@ -1,0 +1,13 @@
+# На складе только брёвна, доски нужно скрафтить.
+id: s02-craft
+title: Площадка 2x2 из дубовых досок
+goal: >
+  Build a flat 2x2 platform of oak planks on the ground. Its corners are (100, 64, 100)
+  and (101, 64, 101). The warehouse chest has oak logs only.
+region: {from: [90, 63, 90], to: [115, 72, 110]}
+robot: {pos: [100, 64, 105], facing: north}
+warehouse: {pos: [95, 64, 105], side: east, items: {minecraft:log: 2}}
+expected:
+  mode: fixed
+  fill: [{from: [100, 64, 100], to: [101, 64, 101], block: minecraft:planks}]
+timeout_s: 900

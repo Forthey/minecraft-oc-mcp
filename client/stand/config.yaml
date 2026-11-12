@@ -1,0 +1,38 @@
+# Общий конфиг стенда. Пути относительные к корню репозитория.
+# Локальные отличия (путь к Java на Windows, пароль) кладите в stand/config.local.yaml,
+# он перекрывает ключи этого файла и не попадает в git.
+
+# Java 8, Forge 1.7.10 на более новой Java не запускается.
+# Windows: C:\Program Files\Eclipse Adoptium\jre-8.0.xxx-hotspot\bin\java.exe
+java_path: /usr/lib/jvm/java-8-openjdk-amd64/bin/java
+java_args: ["-Xms1G", "-Xmx3G"]
+
+server_dir: stand/server/instance
+world_template_dir: stand/server/world-template
+mods_manifest: stand/server/mods.yaml
+mods_cache: stand/server/mods-cache
+
+rcon:
+  host: 127.0.0.1
+  port: 25575
+  password: stand-rcon
+
+# Папка oc-mcp (MCP-сервер робота команды). Её запускает адаптер (python -m adapter).
+oc_mcp_dir: ../oc-mcp
+
+# fake: свой MCP стенда, real: MCP-сервер команды (см. секцию real).
+robot_mcp: fake
+# Для oc-mcp команды это адаптер (python -m adapter, см. stand/README.md). Подстановки:
+# {python}, {oc_mcp_dir}, {scenario} (очищенный сценарий прогона), {action_log} (журнал прогона).
+#   command: ["{python}", -m, adapter, --oc-mcp, "{oc_mcp_dir}/bridge/server.py", --world-id, stand,
+#             --map, "stand.adapter_map:oracle", --map-arg, "scenario={scenario}", --log, "{action_log}"]
+real:
+  command: null       # список, команда запуска stdio MCP-сервера
+  url: null           # или URL streamable HTTP MCP-сервера
+  real_setup: null    # список, команда, которая ставит робота по сценарию
+
+prompt_template: "Use the oc-orchestrator skill. Goal: {goal}"
+
+# Спавн мира и допустимый радиус регионов (спавн-чанки всегда загружены).
+spawn: [100, 64, 100]
+spawn_radius: 96

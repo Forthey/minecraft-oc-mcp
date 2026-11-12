@@ -1,0 +1,62 @@
+# Шаблоны запуска агентов для runner.
+#
+# Подстановки в cmd: {prompt} цель с шаблоном из config.yaml, {mcp_config} путь к
+# конфигу MCP (claude_json), {workspace} рабочая папка агента, {scenario_dir}
+# папка сценария (для агента-скрипта), {mcp_args} список аргументов MCP (codex_args).
+# Первый элемент cmd ищется в PATH (на Windows находится claude.cmd).
+#
+# skills_dir: куда копировать skills/. null значит ./skills и AGENTS.md со ссылкой.
+# mcp_format: claude_json (mcp.json и --mcp-config), opencode_json (opencode.json
+# в рабочей папке), codex_args (-c mcp_servers.robot.* в командной строке).
+# usage_parser: как достать токены и стоимость из вывода (claude_stream_json,
+# codex_json, opencode_json, none).
+#
+# Модель задаётся флагом в cmd, поэтому один агент с разными моделями это разные записи.
+# Флаги проверены на claude 2.1.322, codex-cli 0.167.0, opencode 2.1.0.
+
+claude:
+  cmd: [claude, -p, "{prompt}", --mcp-config, "{mcp_config}", --strict-mcp-config,
+        --output-format, stream-json, --verbose, --permission-mode, bypassPermissions,
+        --setting-sources, project]
+  skills_dir: .claude/skills
+  mcp_format: claude_json
+  usage_parser: claude_stream_json
+
+claude-haiku:
+  cmd: [claude, -p, "{prompt}", --model, haiku, --mcp-config, "{mcp_config}", --strict-mcp-config,
+        --output-format, stream-json, --verbose, --permission-mode, bypassPermissions,
+        --setting-sources, project]
+  skills_dir: .claude/skills
+  mcp_format: claude_json
+  usage_parser: claude_stream_json
+
+codex:
+  cmd: [codex, exec, --json, --skip-git-repo-check, -s, workspace-write, --cd, "{workspace}",
+        "{mcp_args}", "{prompt}"]
+  skills_dir: null
+  mcp_format: codex_args
+  usage_parser: codex_json
+
+# Агент без LLM: выполняет stand/scenarios/<id>/script.json. Проверяет стенд целиком
+# (runner, fake-MCP, мир, судья, метрики) бесплатно и детерминированно.
+script:
+  cmd: ["{python}", -m, stand.runner.script_agent, --mcp-config, "{mcp_config}",
+        --script, "{scenario_dir}/script.json"]
+  # Рабочая папка вне репозитория, поэтому пакет stand ищется по PYTHONPATH.
+  env: {PYTHONPATH: "{root}"}
+  skills_dir: null
+  mcp_format: claude_json
+  usage_parser: none
+
+opencode:
+  cmd: [opencode, run, --standalone, --auto, --format, json, "{prompt}"]
+  skills_dir: .opencode/skills
+  mcp_format: opencode_json
+  usage_parser: opencode_json
+
+# Бесплатная модель opencode, для прогонов без затрат.
+opencode-free:
+  cmd: [opencode, run, --standalone, --auto, --format, json, --model, opencode/big-pickle, "{prompt}"]
+  skills_dir: .opencode/skills
+  mcp_format: opencode_json
+  usage_parser: opencode_json
