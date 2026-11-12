@@ -2,15 +2,17 @@
 
 Набор markdown-скиллов, которые учат локального агента (Claude Code, opencode, Codex с любой моделью) управлять роботом OpenComputers в Minecraft 1.7.10 через MCP. Агент получает высокоуровневую цель вроде "построй ядерный реактор IC2", сам исследует, как это устроено, пишет план постройки и выполняет его через субагентов с проверками на каждом этапе.
 
-Дизайн: [docs/superpowers/specs/2026-11-10-oc-agent-skills-design.md](docs/superpowers/specs/2026-11-10-oc-agent-skills-design.md)
+Дизайн: `docs/superpowers/specs/2026-11-10-oc-agent-skills-design.md` (в git не попадал)
 
-MCP-контракт робота для команды: [docs/mcp-contract.md](docs/mcp-contract.md). Он синхронизирован с `skills/references/tool-contract.md`, менять оба файла вместе.
+MCP-контракт робота для команды: [docs/mcp-contract.md](../docs/mcp-contract.md). Он синхронизирован с `agent/skills/references/tool-contract.md`, менять оба файла вместе.
 
-Сценарии e2e-стенда и что из них показывать на демо: [docs/stand-scenarios.md](docs/stand-scenarios.md).
+Сценарии e2e-стенда и что из них показывать на демо: [docs/stand-scenarios.md](../docs/stand-scenarios.md).
 
-E2E-стенд с метриками (сервер Minecraft, fake-MCP, судья, runner, переезд на реальный MCP): [stand/README.md](stand/README.md).
+E2E-стенд с метриками (сервер Minecraft, fake-MCP, судья, runner, переезд на реальный MCP): [stand/README.md](../stand/README.md).
 
 ## Структура
+
+Пути ниже относительно `agent/`. Адаптер, стенд и остальное описаны в [корневом README](../README.md).
 
 ```
 skills/
@@ -22,10 +24,8 @@ skills/
   oc-verify/         структурная и функциональная проверка, аварийное выключение
   references/        контракт tools, обработка ошибок, конфиг, схема spec, примеры трасс
     examples/        oc-harness.yaml и пример spec.json
-adapter/             MCP-адаптер над oc-mcp: конверт, коды ошибок, добавки контракта (move_to, place_at, ...)
 tools/               структурный валидатор скиллов
-tests/               тесты валидатора, поведенческие сценарии, тесты стенда (tests/stand)
-stand/               e2e-стенд: сервер, fake-MCP, сценарии, судья, runner, conformance
+tests/               тесты валидатора и поведенческие сценарии (tests/scenarios)
 ```
 
 Скиллы ссылаются на `references/` относительными путями (`../references/...`), поэтому при установке каталог `references/` должен лежать рядом с каталогами скиллов.
@@ -42,7 +42,7 @@ stand/               e2e-стенд: сервер, fake-MCP, сценарии, �
 
 Дальше:
 
-1. Подключить MCP-сервер робота в конфиге агента. Скиллы ждут tools из [skills/references/tool-contract.md](skills/references/tool-contract.md). MCP команды `oc-mcp` подключается не напрямую, а через адаптер: `python -m adapter --oc-mcp ../oc-mcp/bridge/server.py` (флаги в `python -m adapter --help` и в [stand/README.md](stand/README.md)). Адаптер отдаёт tools `oc-mcp` в конверте контракта и добавляет недостающие. Без `--map` добавки, которым нужна карта мира (`move_to`, `place_at`, `verify_blocks`), отвечают `UNSUPPORTED`.
+1. Подключить MCP-сервер робота в конфиге агента. Скиллы ждут tools из [skills/references/tool-contract.md](skills/references/tool-contract.md). MCP команды `oc-mcp` подключается не напрямую, а через адаптер: `python -m adapter --oc-mcp bridge/server.py` из корня репозитория (флаги в `python -m adapter --help` и в [stand/README.md](../stand/README.md)). Адаптер отдаёт tools `oc-mcp` в конверте контракта и добавляет недостающие. Без `--map` добавки, которым нужна карта мира (`move_to`, `place_at`, `verify_blocks`), отвечают `UNSUPPORTED`.
 2. Положить `oc-harness.yaml` в корень проекта, из которого запускается агент (пример в [skills/references/examples/oc-harness.yaml](skills/references/examples/oc-harness.yaml)), и заполнить версии модов и позицию склада.
 3. Добавить `.oc-tasks/` и `.oc-knowledge/` в `.gitignore`, если проект в git.
 
@@ -51,9 +51,9 @@ stand/               e2e-стенд: сервер, fake-MCP, сценарии, �
 Структурная проверка (frontmatter, длина, ссылки, имена tools и коды ошибок против контракта, схема spec, формат журнала):
 
 ```bash
-uv venv .venv && uv pip install -p .venv -r requirements-dev.txt
-.venv/bin/pytest -q
-.venv/bin/python tools/validate_skills.py
+uv sync                                      # из корня репозитория
+uv run pytest -q agent/tests
+uv run python agent/tools/validate_skills.py
 ```
 
 Поведенческая проверка идёт по сценариям из `tests/scenarios/`. Каждый сценарий состоит из секций Setup, Scripted tool responses, Expected behavior и Violations. Прогон вручную:

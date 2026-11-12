@@ -8,16 +8,16 @@
 
 Скиллы агента в `skills/` вызывают tools по именам из этого документа, а реакции на ошибки завязаны на коды ошибок отсюда.
 
-Источник правды для скиллов: `skills/references/tool-contract.md` (английский, его читает агент). Этот документ его русская версия для команды с примерами и открытыми вопросами.
+Источник правды для скиллов: `agent/skills/references/tool-contract.md` (английский, его читает агент). Этот документ его русская версия для команды с примерами и открытыми вопросами.
 
 **Правило синхронизации.** Любое изменение контракта (новый tool, переименование, новый параметр, новый код ошибки) делается в обоих файлах сразу, и затем проверяются скиллы:
 
-1. Изменить `skills/references/tool-contract.md`.
+1. Изменить `agent/skills/references/tool-contract.md`.
 2. Изменить этот документ.
-3. Если менялся список кодов ошибок, обновить `ALL_ERROR_CODES` в `tools/validate_skills.py` и таблицу в `skills/references/error-handling.md`.
+3. Если менялся список кодов ошибок, обновить `ALL_ERROR_CODES` в `agent/tools/validate_skills.py` и таблицу в `agent/skills/references/error-handling.md`.
 4. Поправить скиллы, которые используют изменённый tool (таблица ниже).
 5. Поправить fake-MCP стенда: `TOOL_SPECS` в `stand/fake_mcp/dispatch.py` (описание и схема аргументов) и метод в `stand/fake_mcp/sim.py` (tools `oc-mcp`) или `stand/fake_mcp/additions.py` (добавки). Тест `test_tool_specs_match_contract` падает, если набор tools fake-MCP расходится с контрактом.
-6. Запустить `.venv/bin/pytest -q` и `.venv/bin/python tools/validate_skills.py`. Тест `test_team_contract_doc_in_sync` падает, если набор tools здесь и в `tool-contract.md` расходится. Валидатор падает, если скилл ссылается на tool или код ошибки, которого нет в контракте.
+6. Запустить `uv run pytest -q` и `uv run python agent/tools/validate_skills.py`. Тест `test_team_contract_doc_in_sync` падает, если набор tools здесь и в `tool-contract.md` расходится. Валидатор падает, если скилл ссылается на tool или код ошибки, которого нет в контракте.
 7. Прогнать `python -m stand.conformance --mcp fake`, а если реальный сервер уже есть, то и `--mcp real`.
 
 ### Где используются tools
@@ -214,4 +214,4 @@
 - 2026-11-10: уточнено, что `data` всегда объект и списки лежат в его полях. Пример рецептов приведён к рецептам IC2 2.2.827 (в рецепте есть `ingredients`). В правило синхронизации добавлен fake-MCP стенда.
 - 2026-11-11: коды `UNSUPPORTED` и `NO_PROVIDER` для реального MCP (oc-mcp): нет нужного компонента у робота и нет данных NEI без игрока онлайн.
 - 2026-11-11: v2, база oc-mcp. 28 tools: tools `oc-mcp` с их именами и аргументами плюс добавки `move_to`, `face`, `place_at`, `get_status`, `verify_blocks`, `search_docs`, `get_action_log`. Удалены `read_block_info`, `stop`, `drop`, `get_known_map` и tools v1 с заменой в `oc-mcp`. Код `UNKNOWN`. Склад перенесён из `get_status` в `oc-harness.yaml`.
-- 2026-11-11: правило `data` для сквозных tools `oc-mcp` записано явно. fake-MCP отдаёт ровно те поля, что и адаптер, это проверяет тест паритета `tests/adapter/test_adapter_parity.py`.
+- 2026-11-11: правило `data` для сквозных tools `oc-mcp` записано явно. fake-MCP отдаёт ровно те поля, что и адаптер, это проверяет тест паритета `adapter/tests/test_adapter_parity.py`.

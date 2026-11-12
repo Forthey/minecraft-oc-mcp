@@ -13,7 +13,7 @@ coding agents. Don't edit it unless the task is about that agent protocol.
 ## Commands
 
 ```sh
-uv sync --extra dev
+uv sync                                       # from the monorepo root: one .venv for all
 uv run pytest -q                              # all tests
 uv run pytest tests/test_memory.py::test_ttl_expires_poi -q
 uv run python scripts/mcp_smoke.py            # end-to-end MCP over stdio
@@ -22,7 +22,7 @@ uv run python -m memory_mcp.server            # equivalent entrypoint
 ```
 
 - `uv` may be absent from non-login shells; it is at `~/.local/bin/uv`. The
-  existing `.venv/bin/python -m pytest` also runs the suite.
+  root `.venv` (`../.venv`) python with `-m pytest` also runs the suite.
 - No ruff/mypy/formatter config is committed; do not assume a lint step exists.
 - The smoke script deletes and recreates its DB (`data/smoke.db`, override with
   `SMOKE_DB`) and spawns the server with `sys.executable -m memory_mcp.server`.

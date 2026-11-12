@@ -1,8 +1,8 @@
 # E2E-стенд
 
-Стенд проверяет агента со скиллами из `skills/` от начала до конца: агент получает цель, через MCP управляет роботом, в мире Minecraft появляется постройка, судья сверяет её с ожиданием и считает метрики.
+Стенд проверяет агента со скиллами из `agent/skills/` от начала до конца: агент получает цель, через MCP управляет роботом, в мире Minecraft появляется постройка, судья сверяет её с ожиданием и считает метрики.
 
-Дизайн: [docs/superpowers/specs/2026-11-10-e2e-stand-design.md](../docs/superpowers/specs/2026-11-10-e2e-stand-design.md). Сценарии и что из них показывать на демо: [docs/stand-scenarios.md](../docs/stand-scenarios.md).
+Дизайн: `docs/superpowers/specs/2026-11-10-e2e-stand-design.md` (в git не попадал). Сценарии и что из них показывать на демо: [docs/stand-scenarios.md](../docs/stand-scenarios.md).
 
 ## Как устроено
 
@@ -34,13 +34,13 @@ runner   считает метрики и пишет results.json, report.md, su
 Зависимости и сервер:
 
 ```bash
-uv venv .venv && uv pip install -p .venv -r requirements-dev.txt
-.venv/bin/python -m stand.server setup --pin
+uv sync                                   # из корня репозитория, .venv в корне
+uv run python -m stand.server setup --pin
 ```
 
 `setup` проверяет Java, ставит Forge, скачивает моды по `stand/server/mods.yaml` (IC2, OpenComputers, NEI с зависимостями), пишет конфиги и создаёт шаблон мира. Повторный запуск безопасен. Если мод не скачивается, положите jar в `stand/server/mods-cache/` руками.
 
-На Windows вместо `.venv/bin/python` используйте `.venv\Scripts\python`.
+Команды `python -m stand...` ниже запускаются из корня репозитория через `uv run` или из активированного `.venv`.
 
 ## Команды
 
@@ -126,12 +126,12 @@ Fake-MCP эмулирует контракт v2: tools `oc-mcp` (робот ко
 
 Инструкция для агента или человека, который подключает сервер команды. Реальный сервер робота это `oc-mcp` команды, а добавки контракта (`move_to`, `place_at`, `verify_blocks`, коды ошибок, журнал) даёт наш адаптер поверх него. Адаптер и реальный режим стенда (робот в шаблоне мира, прогрев кэша NEI) это подпроекты B и C, нюансы и вопросы к команде в `docs/real-mcp-notes.md`.
 
-1. **Контракт.** Сервер должен реализовать tools из `skills/references/tool-contract.md` (русская версия с примерами в `docs/mcp-contract.md`). Если что-то меняется в контракте, правило синхронизации описано в `docs/mcp-contract.md`.
+1. **Контракт.** Сервер должен реализовать tools из `agent/skills/references/tool-contract.md` (русская версия с примерами в `docs/mcp-contract.md`). Если что-то меняется в контракте, правило синхронизации описано в `docs/mcp-contract.md`.
 2. **Конфиг.** В `stand/config.local.yaml`, для `oc-mcp` через наш адаптер:
 
    ```yaml
    robot_mcp: real
-   oc_mcp_dir: ../oc-mcp
+   oc_mcp_dir: .        # каталог с bridge/, в монорепо это корень (значение по умолчанию)
    real:
      command: ["{python}", -m, adapter, --oc-mcp, "{oc_mcp_dir}/bridge/server.py", --world-id, stand,
                --map, "stand.adapter_map:oracle", --map-arg, "scenario={scenario}", --log, "{action_log}"]

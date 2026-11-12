@@ -67,7 +67,7 @@ cd demo
 ### Каждый раз: агент
 
 ```powershell
-cd C:\Users\0Fort\Downloads\mincraft-oc\play\workspace
+cd demo\workspace
 claude            # модель haiku задана в .claude/settings.json; или: claude --model haiku
 ```
 

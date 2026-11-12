@@ -14,7 +14,7 @@ path-сервису или robot-сервису. Идентичность пре
 ## Быстрый старт
 
 ```sh
-uv sync --extra dev
+uv sync              # из корня монорепо: общий .venv
 uv run memory-mcp        # stdio MCP server
 uv run pytest -q         # тесты
 ```
@@ -34,7 +34,7 @@ MEMORY_DB=/tmp/robot-memory.db uv run memory-mcp
     "servers": {
       "memory": {
         "type": "local",
-        "command": [".venv/bin/python", "-m", "memory_mcp.server"],
+        "command": ["../.venv/bin/python", "-m", "memory_mcp.server"],
         "cwd": ".",
         "environment": {
           "MEMORY_DB": "data/memory.db"
@@ -45,7 +45,7 @@ MEMORY_DB=/tmp/robot-memory.db uv run memory-mcp
 }
 ```
 
-`cwd` — корень этого репозитория. В Code Mode инструменты будут доступны как
+`cwd` — каталог `memory/` монорепо; `.venv` общий, в корне (`uv sync` из корня). В Code Mode инструменты будут доступны как
 `tools.memory.open`, `tools.memory.brief` и т.д.; при `codemode: false` —
 как `memory_open`, `memory_brief`, ...
 

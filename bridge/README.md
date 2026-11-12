@@ -38,7 +38,7 @@ filteringRules=[
 
 ### 4. Скопировать скрипты на робота
 
-`lua/oc_mcp.lua` и папку `lua/oc_mcp/` положить в один каталог робота. Проще всего — прямо в сейв,
+`robot/oc_mcp.lua` и папку `robot/oc_mcp/` положить в один каталог робота. Проще всего — прямо в сейв,
 **при закрытой игре** (OC держит файловую систему в памяти и перезапишет внешние правки):
 
 ```
@@ -55,7 +55,7 @@ filteringRules=[
   "mcpServers": {
     "opencomputers": {
       "command": "/absolute/path/to/python3.11+",
-      "args": ["/absolute/path/to/oc-mcp/bridge/server.py", "--world-id", "my-world"]
+      "args": ["/absolute/path/to/minecraft-oc-mcp/bridge/server.py", "--world-id", "my-world"]
     }
   }
 }
@@ -86,9 +86,9 @@ filteringRules=[
 1. Python: класс-наследник `Tool` в `bridge/tools.py` и добавить его в `TOOLS`. Схема выводится из аннотаций:
    `x: int` — обязательное, `x: int = 1` — со значением по умолчанию, `x: int | None` — необязательное без значения,
    ограничения через `Annotated[int, Range(1, 64)]` и `Literal[...]`.
-2. Lua: файл `lua/oc_mcp/tools/<name>.lua`, возвращающий
+2. Lua: файл `robot/oc_mcp/tools/<name>.lua`, возвращающий
    `{requires = {...}, available = function(robot) ... end, run = function(robot, args) ... return ok, text end}`,
-   и имя в `lua/oc_mcp/tools/init.lua`.
+   и имя в `robot/oc_mcp/tools/init.lua`.
 
 Списки тулов на мосту и роботе не синхронизируются: тул, отключённый на роботе, мост всё равно покажет.
 
