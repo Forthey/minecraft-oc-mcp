@@ -31,8 +31,8 @@ class Config:
     spawn: tuple[int, int, int]
     spawn_radius: int
     root: Path = field(default=ROOT)
-    # Папка oc-mcp (MCP-сервер робота команды), её запускает адаптер.
-    oc_mcp_dir: Path = field(default=ROOT.parent / "oc-mcp")
+    # Каталог, в котором лежит bridge/ (MCP-мост робота). В монорепо это корень.
+    oc_mcp_dir: Path = field(default=ROOT)
 
     @property
     def world_dir(self) -> Path:
@@ -79,7 +79,7 @@ def load_config(path: Path | None = None, root: Path = ROOT) -> Config:
         spawn=tuple(data.get("spawn", [100, 64, 100])),
         spawn_radius=int(data.get("spawn_radius", 96)),
         root=root,
-        oc_mcp_dir=_abs(data.get("oc_mcp_dir", "../oc-mcp"), root).resolve(),
+        oc_mcp_dir=_abs(data.get("oc_mcp_dir", "."), root).resolve(),
     )
 
 

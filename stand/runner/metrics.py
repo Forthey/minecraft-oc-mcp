@@ -17,7 +17,7 @@ from stand.runner.agents import AgentRun
 from stand.runner.usage import tool_inputs
 from stand.scenario import Scenario
 from stand.world.blocks import parse_block
-from tools.validate_skills import JOURNAL_LINE_RE
+from agent.tools.validate_skills import JOURNAL_LINE_RE
 
 FIELD_RE = re.compile(r"(\w+)=(\S+)")
 BUDGET_RE = re.compile(r"^([\w-]+):(\d+)/(\d+)$")

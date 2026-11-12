@@ -6,7 +6,7 @@ import sys
 from types import SimpleNamespace
 
 import anyio
-from conftest import bridge, make_sim
+from adapter_harness import bridge, make_sim
 
 from adapter.__main__ import load_map
 from adapter.action_log import ActionLog
@@ -86,7 +86,7 @@ def test_cli_help():
 
 def test_adapter_process_over_stdio(tmp_path):
     """python -m adapter как отдельный процесс: агентская MCP-сессия, мост, тестовый робот."""
-    from conftest import free_port, oc_mcp_server
+    from adapter_harness import free_port, oc_mcp_server
     from mcp.client.session import ClientSession
     from mcp.client.stdio import StdioServerParameters, stdio_client
     from robot_double import RobotDouble

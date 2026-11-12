@@ -17,8 +17,8 @@ rcon:
   port: 25575
   password: stand-rcon
 
-# Папка oc-mcp (MCP-сервер робота команды). Её запускает адаптер (python -m adapter).
-oc_mcp_dir: ../oc-mcp
+# Каталог, в котором лежит bridge/ (MCP-мост робота). Его запускает адаптер (python -m adapter).
+oc_mcp_dir: .
 
 # fake: свой MCP стенда, real: MCP-сервер команды (см. секцию real).
 robot_mcp: fake

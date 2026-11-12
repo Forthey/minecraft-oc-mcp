@@ -1,7 +1,7 @@
 """Upstream: адаптер говорит с настоящим мостом oc-mcp, робота изображает RobotDouble."""
 
 import anyio
-from conftest import bridge, make_sim
+from adapter_harness import bridge, make_sim
 
 
 def test_call_roundtrip(tmp_path):

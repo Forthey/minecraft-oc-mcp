@@ -12,7 +12,7 @@ import re
 
 import anyio
 import pytest
-from conftest import bridge, make_sim
+from adapter_harness import bridge, make_sim
 
 from adapter.action_log import ActionLog
 from adapter.robot import RobotAdapter

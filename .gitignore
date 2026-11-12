@@ -1,6 +1,44 @@
-__pycache__
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local env
+.env
+.env.*
+.vscode/
+.idea/
+
+# stand: local server, runs, machine-specific config
 stand/server/instance/
 stand/server/world-template/
 stand/server/mods-cache/*.jar
 stand/runs/
 stand/config.local.yaml
+
+# memory: local game files and runtime data
+memory/local/
+memory/data/
+*.db
+*.db-wal
+*.db-shm
+opencode.json
+
+# pathfinding: Maven output
+pathfinding/java/target/
+
+# bridge: runtime log
+bridge/bridge.log
+
+# demo: generated workspace and logs (rebuild with demo/setup_workspace.py)
+demo/workspace/
+demo/logs/

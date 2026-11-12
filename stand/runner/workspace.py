@@ -21,7 +21,7 @@ from stand.runner.agents import AgentCfg
 from stand.scenario import Scenario
 from stand.server.setup import mod_versions
 
-SKILLS_DIR = ROOT / "skills"
+SKILLS_DIR = ROOT / "agent" / "skills"
 MCP_NAME = "robot"
 AGENTS_MD = (
     "# Robot goals\n\n"

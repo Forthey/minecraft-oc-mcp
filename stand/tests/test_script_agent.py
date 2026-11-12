@@ -7,7 +7,7 @@ from pathlib import Path
 from stand.config import ROOT
 from stand.runner.agents import load_agents, render_cmd
 from stand.scenario import SCENARIOS_DIR
-from tools.validate_skills import JOURNAL_LINE_RE
+from agent.tools.validate_skills import JOURNAL_LINE_RE
 
 S01_SCRIPT = SCENARIOS_DIR / "s01-wall" / "script.json"
 

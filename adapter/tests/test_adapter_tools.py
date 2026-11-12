@@ -28,7 +28,7 @@ def test_fake_schemas_match_oc_mcp():
     import importlib.util
     import sys
 
-    from conftest import oc_mcp_server
+    from adapter_harness import oc_mcp_server
 
     # Имя tools занято пакетом tools/ репозитория, поэтому модуль грузится по пути под своим именем.
     bridge_dir = oc_mcp_server().parent

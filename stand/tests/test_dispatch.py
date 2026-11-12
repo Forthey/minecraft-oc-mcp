@@ -10,10 +10,10 @@ from stand.fake_mcp.sim import USED_CODES, RobotSim
 from stand.knowledge import KNOWLEDGE_DIR, Knowledge
 from stand.scenario import SCENARIOS_DIR, load_scenario
 from stand.world.backend import MemoryWorld
-from tools.validate_skills import contract_error_codes, contract_tools
+from agent.tools.validate_skills import contract_error_codes, contract_tools
 
 ROOT = Path(__file__).resolve().parents[2]
-CONTRACT = ROOT / "skills" / "references" / "tool-contract.md"
+CONTRACT = ROOT / "agent" / "skills" / "references" / "tool-contract.md"
 
 
 def _dispatcher(tmp_path, sid="s01-wall", profile="full", faults=None, inventory=None):

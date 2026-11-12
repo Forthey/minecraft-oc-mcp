@@ -358,7 +358,7 @@ def test_verify_uses_valid_status():
 
 # Team contract doc stays in sync with skills/references/tool-contract.md
 
-TEAM_DOC = ROOT / "docs/mcp-contract.md"
+TEAM_DOC = ROOT.parent / "docs/mcp-contract.md"
 
 
 def team_doc_tools(text):

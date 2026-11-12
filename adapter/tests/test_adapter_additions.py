@@ -1,7 +1,7 @@
 """Добавки адаптера поверх настоящего моста oc-mcp и тестового робота, карта по миру в памяти."""
 
 import anyio
-from conftest import bridge, make_sim
+from adapter_harness import bridge, make_sim
 
 from adapter.action_log import ActionLog
 from adapter.robot import RobotAdapter

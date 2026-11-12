@@ -22,7 +22,7 @@ from stand.world.snapshot import Box
 STAND_DIR = Path(__file__).resolve().parent
 SCENARIOS_DIR = STAND_DIR / "scenarios"
 SCHEMA_PATH = STAND_DIR / "scenario-schema.json"
-CONTRACT_PATH = STAND_DIR.parent / "skills" / "references" / "tool-contract.md"
+CONTRACT_PATH = STAND_DIR.parent / "agent" / "skills" / "references" / "tool-contract.md"
 WAREHOUSE_BLOCK: Block = ("minecraft:chest", 0)
 DEFAULT_SCORING = {"pass_accuracy": 1.0, "max_extra": 0}
 
@@ -181,7 +181,7 @@ def required_items(s: Scenario, k: Knowledge) -> dict[str, int]:
 
 
 def _contract_tools() -> set[str]:
-    from tools.validate_skills import contract_tools
+    from agent.tools.validate_skills import contract_tools
 
     return contract_tools(CONTRACT_PATH)
 

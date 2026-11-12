@@ -21,11 +21,11 @@ from pathlib import Path
 import yaml
 
 from stand.config import Config
-from tools.validate_skills import contract_error_codes, contract_tools
+from agent.tools.validate_skills import contract_error_codes, contract_tools
 
 CONFORMANCE_DIR = Path(__file__).resolve().parent
 ROOT = CONFORMANCE_DIR.parents[1]
-CONTRACT = ROOT / "skills" / "references" / "tool-contract.md"
+CONTRACT = ROOT / "agent" / "skills" / "references" / "tool-contract.md"
 
 
 @dataclass
