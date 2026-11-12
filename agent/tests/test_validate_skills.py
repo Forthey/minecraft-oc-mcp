@@ -146,12 +146,13 @@ def test_contract_error_codes():
 
 def test_example_config_keys():
     cfg = yaml.safe_load((ROOT / "skills/references/examples/oc-harness.yaml").read_text(encoding="utf-8"))
-    assert set(cfg) == {"versions", "warehouse", "autonomy", "budgets", "safety", "research"}
+    assert set(cfg) == {"versions", "warehouse", "autonomy", "budgets", "safety", "research", "memory"}
+    assert cfg["memory"] == {"profile": "player"}
     assert cfg["budgets"] == {"step_attempts": 3, "stage_redelegations": 2, "design_revisions": 1,
                               "research_sources": 6, "robot_calls_per_stage": 150}
     assert cfg["autonomy"] in {"auto", "confirm-phases", "confirm-steps"}
     assert cfg["safety"]["require_confirm"] == ["insert_fuel", "activate_machine", "dig_near_structure"]
-    assert cfg["research"] == {"sources": ["rag", "web", "memory"], "cache_dir": ".oc-knowledge"}
+    assert cfg["research"] == {"sources": ["rag", "web", "model"], "cache_dir": ".oc-knowledge"}
 
 
 # Task 3: error handling
@@ -392,3 +393,13 @@ def test_supply_recomputes_tree_after_taking():
 def test_design_does_not_expect_free_space_from_status():
     text = (ROOT / "skills/oc-design/SKILL.md").read_text(encoding="utf-8")
     assert "where there is free space" not in text
+
+
+def test_memory_tools_are_known():
+    from validate_skills import contract_tools
+
+    memory_md = ROOT / "skills/references/memory.md"
+    assert contract_tools(memory_md) == {"open", "brief", "remember_poi", "set_preference", "remember_episode",
+                                         "recall_episodes", "update", "forget"}
+    orch = (ROOT / "skills/oc-orchestrator/SKILL.md").read_text(encoding="utf-8")
+    assert "../references/memory.md#at-startup" in orch and "../references/memory.md#at-the-end" in orch

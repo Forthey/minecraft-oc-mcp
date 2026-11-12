@@ -17,5 +17,7 @@ budgets:
 safety:
   require_confirm: [insert_fuel, activate_machine, dig_near_structure]
 research:
-  sources: [rag, web, memory]
+  sources: [rag, web, model]
   cache_dir: .oc-knowledge
+memory:
+  profile: player

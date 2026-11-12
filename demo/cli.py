@@ -8,6 +8,7 @@
   uv run oc client-mods [--dest]  скопировать моды сервера в клиент
   uv run oc workspace             пересобрать demo/workspace (скиллы и конфиги MCP для всех агентов)
   uv run oc agent <агент> [...]   запустить claude, codex или opencode в demo/workspace
+  uv run oc memory [--reset]      что агент запомнил (demo/memory.db); --reset стирает память
 
 Все команды работают из любого каталога и на любой ОС.
 """
@@ -173,6 +174,8 @@ def cmd_status(cfg: Config, args) -> int:
         ("navigation map", f"map_{map_id}" if map_id is not None else "missing (stop the server, run: oc setup)"),
         ("agent workspace", str(agent_workspace.WS) if (agent_workspace.WS / ".mcp.json").exists()
          else "missing (oc up or oc workspace)"),
+        ("agent memory", f"{agent_workspace.MEMORY_DB} (oc memory)" if agent_workspace.MEMORY_DB.exists()
+         else "empty (filled by the agent)"),
     ]
     width = max(len(k) for k, _ in rows)
     for k, v in rows:
@@ -244,7 +247,8 @@ def agent_command(agent: str, extra: list[str]) -> list[str]:
     if exe is None:
         raise FileNotFoundError(f"{agent} is not in PATH")
     if agent == "codex":
-        return [exe, *codex_mcp_args(agent_workspace.robot_server(), agent_workspace.MCP_NAME), *extra]
+        flags = [a for name, spec in agent_workspace.servers().items() for a in codex_mcp_args(spec, name)]
+        return [exe, *flags, *extra]
     return [exe, *extra]
 
 
@@ -256,6 +260,42 @@ def cmd_agent(cfg: Config, args) -> int:
         print("note: minecraft server is not running, move_to/place_at/verify_blocks need it (uv run oc up)")
     print(f"{args.agent} in {ws}")
     return subprocess.call(cmd, cwd=ws)
+
+
+def memory_summary(db: Path) -> list[str]:
+    """Содержимое базы памяти демо строками: закреплённые факты, места, уроки."""
+    import sqlite3
+
+    if not db.exists():
+        return [f"memory is empty: {db} does not exist yet (the agent creates it on the first task)"]
+    con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    try:
+        core = con.execute("SELECT key, value FROM core ORDER BY importance DESC, key").fetchall()
+        pois = con.execute("SELECT id, kind, label, item_uid, x, y, z, source FROM poi ORDER BY kind, id").fetchall()
+        eps = con.execute("SELECT id, outcome, occurrences, goal, lesson FROM episode "
+                          "ORDER BY last_seen_at DESC").fetchall()
+    finally:
+        con.close()
+    out = [f"memory: {db}", f"facts ({len(core)}):"]
+    out += [f"  {k} = {v}" for k, v in core]
+    out.append(f"places ({len(pois)}):")
+    out += [f"  poi:{i} {kind} '{label}'{' ' + uid if uid else ''} at ({x}, {y}, {z}), {src}"
+            for i, kind, label, uid, x, y, z, src in pois]
+    out.append(f"lessons ({len(eps)}):")
+    out += [f"  ep:{i} [{outcome} x{n}] {goal}: {lesson}" for i, outcome, n, goal, lesson in eps]
+    return out
+
+
+def cmd_memory(cfg: Config, args) -> int:
+    db = agent_workspace.MEMORY_DB
+    if args.reset:
+        removed = [p for p in (db, Path(f"{db}-wal"), Path(f"{db}-shm")) if p.exists()]
+        for p in removed:
+            p.unlink()
+        print(f"memory reset: {db}" if removed else "memory was already empty")
+        return 0
+    print("\n".join(memory_summary(db)))
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -276,8 +316,10 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("agent", help="run an agent in demo/workspace with the robot MCP server")
     p.add_argument("agent", choices=agent_workspace.AGENTS)
     p.add_argument("extra", nargs=argparse.REMAINDER, help="arguments for the agent, e.g. -- --model haiku")
+    p = sub.add_parser("memory", help="show what the agent remembers; --reset forgets everything")
+    p.add_argument("--reset", action="store_true", help="delete demo/memory.db")
     args = parser.parse_args(argv)
-    handlers = {"setup": cmd_setup, "up": cmd_up, "down": cmd_down, "status": cmd_status, "give": cmd_give,
+    handlers = {"memory": cmd_memory, "setup": cmd_setup, "up": cmd_up, "down": cmd_down, "status": cmd_status, "give": cmd_give,
                 "client-mods": cmd_client_mods, "workspace": cmd_workspace, "agent": cmd_agent}
     try:
         return handlers[args.cmd](load_config(), args)

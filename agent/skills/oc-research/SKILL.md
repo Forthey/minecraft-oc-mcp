@@ -16,12 +16,12 @@ You answer one research question for the orchestrator and write a short note. Yo
 ## Procedure
 
 1. **Check the cache.** Look for a matching note in `.oc-knowledge/` (by topic slug or a quick grep). If a note exists, has the same versions and has no open conflicts on the question, copy it into `research/` and finish with `status: DONE`.
-2. **Ask sources in priority order**, as set in `research.sources` (default `rag, web, memory`):
+2. **Ask sources in priority order**, as set in `research.sources` (default `rag, web, model`):
    - **rag**: `search_docs(query, mod, limit)` for mechanics and structures, `nei_find` and `nei_recipes` (or `nei_recipe` for one recipe in full) for items and recipes. Highest trust, because the index matches the modpack versions.
    - **web**: your agent's built-in search and fetch tools (WebSearch and WebFetch, or their equivalents). Prefer the official mod wiki, then FTB or Gamepedia wikis, then forum threads and guides. Fetch only the relevant page, extract the facts, drop the rest.
-   - **memory**: what you already know. Use it only as a hypothesis to search for. A fact from memory alone is `low`.
+   - **model**: what you already know yourself. Use it only as a hypothesis to search for. A fact from your own knowledge alone is `low`. This is not the `memory` MCP server: its lessons come to you from the orchestrator in Known failures.
 3. **Pin versions.** Everything must match Minecraft 1.7.10 and the mod versions from task.md. IC2 has two branches (Experimental and Classic) that differ a lot. A source for another game version or another branch makes the fact `low`, and you say so in the note.
-4. **Cross-check.** A key fact needs two independent sources to get `high`. One good source is `medium`. Memory only, wrong version, or an unclear source is `low`.
+4. **Cross-check.** A key fact needs two independent sources to get `high`. One good source is `medium`. Own knowledge only, wrong version, or an unclear source is `low`.
 5. **Stop on budget.** Stop after `research_sources` sources even if not everything is confirmed. List what is still open under Conflicts.
 6. **Write the note** to `research/<topic-slug>.md` and copy it to `.oc-knowledge/<topic-slug>.md`.
 

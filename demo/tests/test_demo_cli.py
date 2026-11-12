@@ -78,6 +78,15 @@ def test_workspace_for_all_agents(tmp_path, monkeypatch):
     opencode = json.loads((ws / "opencode.json").read_text(encoding="utf-8"))["mcp"]["robot"]
     assert opencode["type"] == "local" and opencode["command"][1:3] == ["-m", "adapter"]
     assert "skills/oc-orchestrator/SKILL.md" in (ws / "AGENTS.md").read_text(encoding="utf-8")
+    # Память: тот же сервер во всех форматах, база demo/memory.db.
+    claude = json.loads((ws / ".mcp.json").read_text(encoding="utf-8"))["mcpServers"]["memory"]
+    assert claude["args"] == ["-m", "memory_mcp.server"] and claude["env"]["MEMORY_DB"] == str(aw.MEMORY_DB)
+    mem = json.loads((ws / "opencode.json").read_text(encoding="utf-8"))["mcp"]["memory"]
+    assert mem["environment"] == {"MEMORY_DB": str(aw.MEMORY_DB)}
+    assert json.loads((ws / ".claude" / "settings.local.json").read_text(encoding="utf-8")) ==         {"enabledMcpjsonServers": ["robot", "memory"]}
+    assert "mcp__memory" in json.loads((ws / ".claude" / "settings.json").read_text(encoding="utf-8"))["permissions"]["allow"]
+    harness = (ws / "oc-harness.yaml").read_text(encoding="utf-8")
+    assert "profile: player" in harness and "model" in harness
     assert "oc-orchestrator" in (ws / "CLAUDE.md").read_text(encoding="utf-8")
 
 
@@ -87,7 +96,30 @@ def test_agent_command(monkeypatch):
     assert codex[0] == "/bin/codex" and codex[-2:] == ["--model", "m"]
     assert any(a.startswith("mcp_servers.robot.command=") for a in codex)
     assert "mcp_servers.robot.tool_timeout_sec=600" in codex
+    assert any(a.startswith("mcp_servers.memory.env.MEMORY_DB=") for a in codex)
     assert cli.agent_command("claude", []) == ["/bin/claude"]
     monkeypatch.setattr(cli.shutil, "which", lambda name: None)
     with pytest.raises(FileNotFoundError):
         cli.agent_command("opencode", [])
+
+
+def test_memory_show_and_reset(tmp_path, monkeypatch, capsys):
+    from memory_mcp.config import Settings, _default_migrations_dir
+    from memory_mcp.repo import MemoryRepo
+    from memory_mcp.schemas import EpisodeRecord, PoiRecord
+
+    from demo import agent_workspace as aw
+
+    db = tmp_path / "memory.db"
+    monkeypatch.setattr(aw, "MEMORY_DB", db)
+    assert cli.main(["memory"]) == 0 and "memory is empty" in capsys.readouterr().out
+    repo = MemoryRepo(Settings(db_path=db, migrations_dir=_default_migrations_dir()))
+    ctx = repo.open_context("stand", "player", "robot-1")["session_id"]
+    repo.remember_poi(ctx, PoiRecord(kind="machine", label="macerator", dim=0, x=101, y=64, z=100,
+                                     item_uid="IC2:blockMachine:3"))
+    repo.remember_episode(ctx, EpisodeRecord(goal="wall", outcome="success", lesson="bottom row first"))
+    repo.conn.close()
+    assert cli.main(["memory"]) == 0
+    out = capsys.readouterr().out
+    assert "machine 'macerator' IC2:blockMachine:3 at (101, 64, 100)" in out and "bottom row first" in out
+    assert cli.main(["memory", "--reset"]) == 0 and not db.exists()

@@ -7,17 +7,19 @@ description: Use when the user gives a goal for the OpenComputers robot in Minec
 
 You are the orchestrator. You own the goal, the plan (spec), the journal and every decision. You do not build, craft or research yourself: you delegate to subagents with a clean context and read only their short summaries.
 
-Robot tools are listed in [tool-contract.md](../references/tool-contract.md). Error reactions and anti-loop rules are in [error-handling.md](../references/error-handling.md). Worked traces are in [workflow-examples.md](../references/workflow-examples.md): read them before your first task.
+Robot tools are listed in [tool-contract.md](../references/tool-contract.md). Memory between tasks is described in [memory.md](../references/memory.md). Error reactions and anti-loop rules are in [error-handling.md](../references/error-handling.md). Worked traces are in [workflow-examples.md](../references/workflow-examples.md): read them before your first task.
 
 ## Startup
 
 1. Read `oc-harness.yaml` from the project root. If it is missing, use the defaults from [config.md](../references/config.md).
 2. Check for an existing task with the same goal in `.oc-tasks/`. If one exists and is not finished, follow [Resume](#resume). Versions recorded in its task.md count as known.
 3. If the task needs research and `versions.ic2` or `versions.opencomputers` is unknown (missing or `"<set me>"`), ask the user once before research. If research is skipped, record the versions as unknown and go on without asking.
-4. Call `get_status()` once to learn position and facing. The warehouse position and side come from `warehouse` in `oc-harness.yaml`. If the key is missing, ask the user where the warehouse is.
-5. Create the task workspace and write task.md with the goal, versions, warehouse and the effective budget values.
+4. Call `get_status()` once to learn position and facing.
+5. If a `memory` MCP server is connected, follow [At startup in memory.md](../references/memory.md#at-startup): open a session, read the brief, take known places and lessons.
+6. The warehouse position and side come from `warehouse` in `oc-harness.yaml`. If the key is missing, take it from memory (step 5). If neither has it, ask the user where the warehouse is.
+7. Create the task workspace and write task.md with the goal, versions, warehouse, the effective budget values and the `## Memory` section from step 5.
 
-The robot tools you may call yourself are `get_status` and the knowledge tools (`nei_find`, `nei_recipes`, `nei_recipe`, `nei_craft_tree`, `search_docs`). Everything else is delegated. If a knowledge tool returns `NO_PROVIDER`, ask the user to join the game with NEI. If any tool returns `UNSUPPORTED`, tell the user which component the robot is missing.
+The robot tools you may call yourself are `get_status`, `world_info` and the knowledge tools (`nei_find`, `nei_recipes`, `nei_recipe`, `nei_craft_tree`, `search_docs`), plus the tools of the `memory` server. Everything else is delegated. If a knowledge tool returns `NO_PROVIDER`, ask the user to join the game with NEI. If any tool returns `UNSUPPORTED`, tell the user which component the robot is missing.
 
 ## Phases
 
@@ -148,6 +150,10 @@ Counting rules:
 - `robot_calls_per_stage` is a fresh budget for each delegation. The total per stage is bounded by `stage_redelegations`.
 - When re-running a partly done stage, say so in the Goal line, so the builder follows its Partially built stage section.
 
+## Finish
+
+When the final check is PASS, or the task stops for good (exhausted ladder, the user cancels), and a `memory` server is connected, follow [At the end in memory.md](../references/memory.md#at-the-end): save the places the robot used or built and, if the task taught something, one lesson. Then send the final message.
+
 ## When to ask the user
 
 - The escalation ladder is exhausted.
@@ -155,6 +161,8 @@ Counting rules:
 - Research gives conflicting facts on a critical question after one extra round.
 - An action listed in `safety.require_confirm` is next.
 - The `autonomy` mode requires it: spec approval in `confirm-phases`, plus every stage in `confirm-steps`.
+
+When the user tells you a fact worth keeping (where something is, a rule like "never dig near the base"), save it to memory at once, see [memory.md](../references/memory.md#when-the-user-tells-you-a-fact).
 
 Ask short, concrete questions with options, for example: "Resource X is missing. Put 4 into the warehouse, or switch to the simpler layout without it?"
 

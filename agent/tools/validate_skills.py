@@ -184,6 +184,8 @@ def validate_repo(root: Path) -> list[str]:
     skill_files = sorted(skills_dir.glob("*/SKILL.md"))
     ref_files = sorted((skills_dir / "references").glob("*.md"))
     contract = skills_dir / "references" / "tool-contract.md"
+    # Tools сервера memory описаны отдельно от контракта робота.
+    memory_md = skills_dir / "references" / "memory.md"
 
     for path in skill_files:
         try:
@@ -198,12 +200,12 @@ def validate_repo(root: Path) -> list[str]:
         errors += check_links_stay_inside(path, skills_dir)
 
     if contract.exists():
-        known = contract_tools(contract)
+        known = contract_tools(contract) | (contract_tools(memory_md) if memory_md.exists() else set())
         declared_codes = contract_error_codes(contract)
         if declared_codes != ALL_ERROR_CODES:
             errors.append(f"{contract}: error codes differ from ALL_ERROR_CODES")
         for path in skill_files + ref_files:
-            if path == contract:
+            if path in (contract, memory_md):
                 continue
             text = path.read_text(encoding="utf-8")
             for name in sorted(referenced_tools(text, known)):

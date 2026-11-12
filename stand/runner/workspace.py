@@ -95,7 +95,7 @@ def _harness(s: Scenario, cfg: Config) -> dict:
         },
         # Подтверждать гейты некому: прогон идёт без человека.
         "safety": {"require_confirm": []},
-        "research": {"sources": ["rag", "web", "memory"], "cache_dir": ".oc-knowledge"},
+        "research": {"sources": ["rag", "web", "model"], "cache_dir": ".oc-knowledge"},
     }
 
 

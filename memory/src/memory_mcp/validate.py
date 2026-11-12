@@ -3,8 +3,11 @@ from __future__ import annotations
 import re
 
 # Stable item identity comes from NEI. Memory stores it verbatim and never
-# derives it from runtime numeric ids (265:0), metadata or NBT.
-UID_RE = re.compile(r"^[a-z][a-z0-9_]*:[A-Za-z0-9][A-Za-z0-9_.\-/]*$")
+# derives it from runtime numeric ids (265:0) or NBT.
+# Shape: scheme:name with an optional :damage. NEI and oc-mcp give mod ids as they
+# are registered, so the scheme may hold capitals (IC2:blockMachine:3,
+# OpenComputers:robot); ore dictionary names use the "ore" scheme (ore:ingotIron).
+UID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_\-]*:[A-Za-z0-9][A-Za-z0-9_.\-/]*(:\d+)?$")
 RAW_RE = re.compile(r"^\d+(:\d+)?$")
 MAX_UID_LEN = 128
 
@@ -28,7 +31,8 @@ def validate_item_uid(value: str) -> str:
         )
     if not UID_RE.match(value):
         raise ValueError(
-            f"invalid item_uid: {value!r}; expected 'scheme:name', e.g. 'ore:ingotIron'"
+            f"invalid item_uid: {value!r}; expected 'mod:name' or 'mod:name:damage' as NEI gives it, "
+            "e.g. 'minecraft:planks:2', 'IC2:blockMachine:3', 'ore:ingotIron'"
         )
     return value
 

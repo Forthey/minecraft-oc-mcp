@@ -11,11 +11,11 @@
 
 - Сервис не обращается к Minecraft, NEI, path-сервису и robot-сервису.
 - Единственный источник наблюдений о мире — агент, который передаёт их в вызовах.
-- Единственный источник идентичности предметов — `nei-mcp`: память хранит
+- Единственный источник идентичности предметов — NEI (`nei_find` робота): память хранит
   непрозрачный стабильный `item_uid`, но никогда не хранит сырые runtime ID
   (`id:meta`, NBT).
 - Pathfinding — зона `path-mcp`; память не планирует маршруты.
-- Рецепты — зона `nei-mcp`; память не кэширует рецепты.
+- Рецепты — зона NEI; память не кэширует рецепты.
 
 ```
 opencode / Pi ──MCP──► memory-mcp ──► SQLite (один файл, WAL)
@@ -203,11 +203,12 @@ CREATE UNIQUE INDEX idx_episode_merge
 ### 5.2. Валидация `item_uid`
 
 ```python
-UID_RE = re.compile(r"^[a-z][a-z0-9_]*:[A-Za-z0-9][A-Za-z0-9_.\-/]*$")
+UID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_\-]*:[A-Za-z0-9][A-Za-z0-9_.\-/]*(:\d+)?$")
 RAW_RE = re.compile(r"^\d+(:\d+)?$")
 ```
 
-- `item_uid` приходит только от NEI и сохраняется verbatim;
+- `item_uid` приходит только от NEI и сохраняется verbatim: `mod:name` или `mod:name:damage`,
+  мод с любым регистром (`IC2:blockMachine:3`), oredict как `ore:ingotIron`;
 - пустая строка разрешена для не-item POI и для «NEI ещё не готов»;
 - сырые `265:0`, NBT, локально собранные `item_key` запрещены.
 
@@ -311,7 +312,7 @@ memory_stats(session_id=None) -> {poi_total, by_kind, by_scope, db_bytes, world_
 
 1. Старт сессии: `memory_open` → `session_id` (он же `ctx_id`).
 2. Старт задачи: `memory_brief(task, pose)`.
-3. Пользовательский термин → `nei.resolve`; неоднозначно → уточнить у пользователя.
+3. Пользовательский термин → `nei_find`; неоднозначно → уточнить у пользователя.
 4. Наблюдение → `memory_remember_poi` с UID от NEI.
 5. Предпочтение игрока → `memory_set_preference`.
 6. Повторная встреча POI → idempotent `memory_remember_poi` (обновляет `last_seen_at`).

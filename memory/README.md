@@ -77,7 +77,7 @@ MEMORY_DB=/tmp/robot-memory.db uv run memory-mcp
    между роботами/профилями/мирами. `pose` — `{x, y, z, dim}`; `dim`
    необязателен и по умолчанию равен `0` (overworld). Поле `lessons` содержит
    релевантные уроки из прошлых задач.
-3. Термин пользователя → `nei.resolve`; в память писать только `item_uid`.
+3. Термин пользователя → `nei_find` робота; в память писать только `item_uid` из его ответа (`mod:name:damage`).
 4. Наблюдение → `remember_poi`, предпочтение → `set_preference`,
    «забудь» → `forget`.
 5. Если задача дала переиспользуемый урок → `remember_episode`; если опыта

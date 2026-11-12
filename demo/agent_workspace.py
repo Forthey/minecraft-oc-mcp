@@ -27,16 +27,22 @@ SCENARIO = PLAY / "scenario.yaml"
 PYTHON = ROOT / ".venv" / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
 
 LOGS = PLAY / "logs"
+# База памяти агента: переживает перезапуски агента, сервера и пересборку workspace. В .gitignore.
+MEMORY_DB = PLAY / "memory.db"
+# Профиль игрока для memory: чьи предпочтения и договорённости. Мир и робот берутся из world_info.
+PROFILE = "player"
 
 from stand.config import load_config  # noqa: E402
 from stand.server.setup import mod_versions  # noqa: E402
 
 MCP_NAME = "robot"
+MEMORY_NAME = "memory"
 AGENTS = ("claude", "codex", "opencode")
 # Куда каждый агент смотрит за скиллами. Codex читает их по ссылке из AGENTS.md.
 SKILL_DIRS = {"claude": ".claude/skills", "opencode": ".opencode/skills", "codex": "skills"}
 
 CONTEXT = """Инструменты робота даёт MCP-сервер `robot` (oc-mcp через адаптер контракта v2).
+Память между задачами (склад, машины, уроки) даёт MCP-сервер `memory`, как его вести, сказано в oc-orchestrator.
 
 - Мир: Minecraft 1.7.10, выделенный сервер стенда, игрок подключён клиентом.
 - Склад (сундук) и его сторона описаны в oc-harness.yaml.
@@ -72,6 +78,23 @@ def robot_server() -> dict:
     }
 
 
+def memory_server() -> dict:
+    """stdio MCP-сервер памяти агента (memory/) с базой demo/memory.db."""
+    return {"command": str(PYTHON), "args": ["-m", "memory_mcp.server"], "env": {"MEMORY_DB": str(MEMORY_DB)}}
+
+
+def servers() -> dict[str, dict]:
+    """Все MCP-серверы демо по имени: робот и память."""
+    return {MCP_NAME: robot_server(), MEMORY_NAME: memory_server()}
+
+
+def _opencode(spec: dict) -> dict:
+    out = {"type": "local", "command": [spec["command"], *spec["args"]], "enabled": True}
+    if spec.get("env"):
+        out["environment"] = spec["env"]
+    return out
+
+
 def _copy_skills(dest: Path) -> None:
     if dest.exists():
         shutil.rmtree(dest)
@@ -101,28 +124,30 @@ def build() -> Path:
         "budgets": {"step_attempts": 3, "stage_redelegations": 2, "design_revisions": 1,
                     "research_sources": 6, "robot_calls_per_stage": 150},
         "safety": {"require_confirm": ["insert_fuel", "activate_machine", "dig_near_structure"]},
-        "research": {"sources": ["rag", "web", "memory"], "cache_dir": ".oc-knowledge"},
+        "research": {"sources": ["rag", "web", "model"], "cache_dir": ".oc-knowledge"},
+        "memory": {"profile": PROFILE},
     }
     (WS / "oc-harness.yaml").write_text(yaml.safe_dump(harness, sort_keys=False, allow_unicode=True), encoding="utf-8")
 
     LOGS.mkdir(exist_ok=True)
-    robot = robot_server()
+    mcp = servers()
 
     # Claude Code. Одобрение серверов из .mcp.json он читает только из локальных настроек.
-    _write_json(WS / ".mcp.json", {"mcpServers": {MCP_NAME: robot}})
+    _write_json(WS / ".mcp.json", {"mcpServers": mcp})
     _write_json(WS / ".claude" / "settings.json", {
         "model": "haiku",
         "permissions": {
-            "allow": [f"mcp__{MCP_NAME}", "Read", "Glob", "Grep", "Edit", "Write", "WebSearch", "WebFetch"],
+            "allow": [*(f"mcp__{name}" for name in mcp), "Read", "Glob", "Grep", "Edit", "Write",
+                      "WebSearch", "WebFetch"],
         },
     })
-    _write_json(WS / ".claude" / "settings.local.json", {"enabledMcpjsonServers": [MCP_NAME]})
+    _write_json(WS / ".claude" / "settings.local.json", {"enabledMcpjsonServers": list(mcp)})
     (WS / "CLAUDE.md").write_text(CLAUDE_MD, encoding="utf-8")
 
     # opencode и Codex читают AGENTS.md. Codex получает MCP-сервер флагами при запуске (oc agent codex).
     _write_json(WS / "opencode.json", {
         "$schema": "https://opencode.ai/config.json",
-        "mcp": {MCP_NAME: {"type": "local", "command": [robot["command"], *robot["args"]], "enabled": True}},
+        "mcp": {name: _opencode(spec) for name, spec in mcp.items()},
     })
     (WS / "AGENTS.md").write_text(AGENTS_MD, encoding="utf-8")
     return WS

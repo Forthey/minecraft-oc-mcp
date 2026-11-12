@@ -105,6 +105,9 @@ uv run oc agent opencode -- --model <провайдер>/<модель>
 Другой MCP-клиент подключается так же: stdio-сервер с командой и аргументами из `demo/workspace/.mcp.json`,
 инструкция из `demo/workspace/AGENTS.md`, скиллы из `demo/workspace/skills/`.
 
+Агент ведёт память между задачами (MCP-сервер `memory`): склад, построенное, правила игрока и уроки. Посмотреть её
+можно командой `uv run oc memory`, подробнее в [demo/README.md](../demo/README.md#память-между-задачами).
+
 Журнал задачи пишется в `demo/workspace/.oc-tasks/`, каждый вызов робота в `demo/logs/action_log.jsonl`,
 лог моста в `demo/logs/bridge.log`. Если что-то пошло не так, смотрите таблицы "Если не работает"
 в [demo/README.md](../demo/README.md#если-не-работает) и [docs/robot-build.md](robot-build.md#если-не-работает).

@@ -42,3 +42,4 @@ bridge/bridge.log
 # demo: generated workspace and logs (rebuild with demo/setup_workspace.py)
 demo/workspace/
 demo/logs/
+demo/memory.db*

@@ -18,8 +18,9 @@ The orchestrator reads `oc-harness.yaml` from the project root before anything e
 | `budgets.research_sources` | int | `6` | Sources consulted per research question |
 | `budgets.robot_calls_per_stage` | int | `150` | Robot tool calls allowed per build stage |
 | `safety.require_confirm` | list | `[insert_fuel, activate_machine, dig_near_structure]` | Actions that always need user confirmation |
-| `research.sources` | list | `[rag, web, memory]` | Source priority. Remove an entry to disable that source |
+| `research.sources` | list | `[rag, web, model]` | Source priority. `model` is the agent's own knowledge. Remove an entry to disable that source |
 | `research.cache_dir` | string | `.oc-knowledge` | Shared research note cache |
+| `memory.profile` | string | `player` | Player or team id for the `memory` server, see [memory.md](memory.md) |
 
 ## Autonomy modes
 
