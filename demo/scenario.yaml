@@ -1,0 +1,20 @@
+# Площадка интерактивного демо: настоящий робот, адаптер oc-mcp, агент Claude Code.
+# prepare сбрасывает регион и ставит склад. Робота ставите руками ПОСЛЕ prepare
+# (сброс региона робота удалит).
+id: play
+title: Интерактивная площадка
+goal: Interactive play area, the goal comes from the user prompt.
+region: {from: [85, 63, 85], to: [120, 75, 120]}
+robot: {pos: [96, 64, 105], facing: west}
+warehouse:
+  pos: [95, 64, 105]
+  side: east
+  items:
+    minecraft:cobblestone: 64
+    minecraft:stone: 64
+    minecraft:planks: 64
+    minecraft:glass: 32
+expected:
+  mode: fixed
+  fill: []
+timeout_s: 3600
