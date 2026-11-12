@@ -14,6 +14,14 @@
 mvn clean package
 ```
 
+На выходе `target/mc-pathfinding-0.1.0.jar` со всеми зависимостями и `Main-Class` (maven-shade-plugin).
+
+Если Maven падает с `bad_record_mac` / `Tag mismatch` при скачивании (замечено на macOS с JDK 26), собирать на JDK 21 и TLS 1.2:
+
+```bash
+JAVA_HOME=<jdk 21> MAVEN_OPTS="-Djdk.tls.client.protocols=TLSv1.2" mvn clean package
+```
+
 ## Запуск
 
 ```bash
@@ -25,6 +33,27 @@ java -jar target/mc-pathfinding-0.1.0.jar <путь_к_миру> <X1> <Y1> <Z1> 
 ```bash
 java -jar target/mc-pathfinding-0.1.0.jar "/home/ivan/.minecraft/saves/Новый мир-" 276 64 -374 130 121 -36 North
 ```
+
+### Путь клетками (`--cells`)
+
+```bash
+java -jar target/mc-pathfinding-0.1.0.jar --cells <путь_к_миру> <X1> <Y1> <Z1> <X2> <Y2> <Z2> <Направление>
+```
+
+В stdout одна строка: JSON-массив мировых клеток `[[x,y,z],...]` от старта до цели. Без флага вывод прежний
+(относительные команды).
+
+### Подключение к адаптеру
+
+```bash
+uv run python -m adapter serve --world-id my-world \
+  --pf-jar pathfinding/java/target/mc-pathfinding-0.1.0.jar \
+  --pf-world "$HOME/Library/Application Support/minecraft/saves/New World" \
+  [--pf-java /path/to/java17] [--long-range 32]
+```
+
+`move_to` дальше `--long-range` блоков по x или z идёт по маршруту из jar. Нужна Java 17+ (`--pf-java`, если
+`java` в PATH старее).
 
 ## Зависимости
 

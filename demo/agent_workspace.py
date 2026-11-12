@@ -35,13 +35,16 @@ PROFILE = "player"
 from stand.config import load_config  # noqa: E402
 from stand.server.setup import mod_versions  # noqa: E402
 
+HUB_PORT = 8765
+HUB_URL = f"http://127.0.0.1:{HUB_PORT}"
+MCP_URL = f"{HUB_URL}/mcp"
 MCP_NAME = "robot"
 MEMORY_NAME = "memory"
 AGENTS = ("claude", "codex", "opencode")
 # Куда каждый агент смотрит за скиллами. Codex читает их по ссылке из AGENTS.md.
 SKILL_DIRS = {"claude": ".claude/skills", "opencode": ".opencode/skills", "codex": "skills"}
 
-CONTEXT = """Инструменты робота даёт MCP-сервер `robot` (oc-mcp через адаптер контракта v2).
+CONTEXT = """Инструменты робота даёт MCP-сервер `robot` (хаб oc-mcp с адаптером контракта v2, его поднимает `uv run oc up`).
 Память между задачами (склад, машины, уроки) даёт MCP-сервер `memory`, как его вести, сказано в oc-orchestrator.
 
 - Мир: Minecraft 1.7.10, выделенный сервер стенда, игрок подключён клиентом.
@@ -64,18 +67,19 @@ AGENTS_MD = f"""# Робот OpenComputers
 {CONTEXT}"""
 
 
+def hub_args(port: int = HUB_PORT) -> list[str]:
+    return ["-m", "adapter", "serve",
+            "--port", str(port),
+            "--world-id", "stand",
+            "--bridge-log", str(LOGS / "bridge.log"),
+            "--map", "stand.adapter_map:oracle",
+            "--map-arg", f"scenario={SCENARIO}",
+            "--log", str(LOGS / "action_log.jsonl")]
+
+
 def robot_server() -> dict:
-    """stdio MCP-сервер робота: адаптер поверх моста oc-mcp и карта-оракул стенда."""
-    return {
-        "command": str(PYTHON),
-        "args": ["-m", "adapter",
-                 "--oc-mcp", str(ROOT / "bridge" / "server.py"),
-                 "--world-id", "stand",
-                 "--bridge-log", str(LOGS / "bridge.log"),
-                 "--map", "stand.adapter_map:oracle",
-                 "--map-arg", f"scenario={SCENARIO}",
-                 "--log", str(LOGS / "action_log.jsonl")],
-    }
+    """MCP-сервер робота: долгоживущий хаб (python -m adapter serve), его поднимает oc up."""
+    return {"type": "http", "url": MCP_URL}
 
 
 def memory_server() -> dict:
@@ -89,6 +93,8 @@ def servers() -> dict[str, dict]:
 
 
 def _opencode(spec: dict) -> dict:
+    if "url" in spec:
+        return {"type": "remote", "url": spec["url"], "enabled": True}
     out = {"type": "local", "command": [spec["command"], *spec["args"]], "enabled": True}
     if spec.get("env"):
         out["environment"] = spec["env"]

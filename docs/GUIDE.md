@@ -34,7 +34,7 @@
 Каждый раз:
 
 ```
-uv run oc up        # сервер, раздача Lua роботу, рабочая папка агента
+uv run oc up        # сервер, хаб робота (мост + MCP + раздача Lua на :8765), рабочая папка агента
 uv run oc status    # что запущено и что настроено
 ```
 
@@ -65,7 +65,7 @@ Controller, Crafting, Geolyzer, Angel, двумя Inventory Upgrade, экран�
    выбрать жёсткий диск, затем `reboot`.
 3. В шелле робота:
    ```
-   wget -f http://127.0.0.1:8770/get.lua /home/get.lua
+   wget -f http://127.0.0.1:8765/get.lua /home/get.lua
    /home/get.lua
    oc_mcp
    ```

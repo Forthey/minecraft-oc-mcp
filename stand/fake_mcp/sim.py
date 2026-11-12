@@ -280,9 +280,9 @@ class RobotSim(Additions):
                     row.append(self._hardness(self._block_at(p)))
                 rows.append(row)
             layers.append(rows)
-        lines = ["axes: robot (x = right, z = forward, y = up)"]
+        lines = ["axes: x = right, z = forward, y = up"]
         for dy, rows in enumerate(layers):
-            lines.append(f"y={y + dy}")
+            lines.append(f"y={y + dy} (rows z={z}..{z + depth - 1}, columns x={x}..{x + width - 1}):")
             lines.extend(" ".join("." if v == 0 else f"{v:g}" for v in row) for row in rows)
         return ok("\n".join(lines))
 
@@ -297,8 +297,7 @@ class RobotSim(Additions):
         lines, data = [], []
         for slot, item, count in slots:
             name, label = nei_id(item), self.nei.label(item)
-            # oc-mcp печатает имя стека без damage, damage есть только в data.
-            lines.append(texts.item_line(slot, count, parse_block(item)[0], label))
+            lines.append(texts.item_line(slot, count, name, label))
             data.append({"slot": slot, "count": count, "name": name, "label": label})
         return lines, data
 

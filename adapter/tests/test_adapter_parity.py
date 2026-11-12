@@ -43,6 +43,8 @@ TOUR = [
     {"tool": "equip", "args": {"slot": 2}},
     {"tool": "surroundings", "args": {}},
     {"tool": "geo_scan", "args": {"x": -1, "z": 0, "y": 0, "width": 3, "depth": 2, "height": 1}},
+    {"tool": "scan_area", "args": {"x1": 90, "y1": 63, "z1": 100, "x2": 101, "y2": 66, "z2": 109}},
+    {"tool": "scan_area", "args": {"x1": 90, "y1": 63, "z1": 100, "x2": 140, "y2": 64, "z2": 101}},
     {"tool": "turn", "args": {"direction": "around"}},
     {"tool": "move", "args": {"direction": "forward", "n": 2}},
     {"tool": "move", "args": {"direction": "up", "n": 1}},

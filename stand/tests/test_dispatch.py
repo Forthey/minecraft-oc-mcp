@@ -50,7 +50,7 @@ def test_profiles_reference_known_tools():
 def test_profile_hides_tools(tmp_path):
     d, _, _ = _dispatcher(tmp_path, profile="no-vision")
     enabled = set(d.enabled_tools())
-    assert not enabled & {"surroundings", "geo_scan"}
+    assert not enabled & {"surroundings", "geo_scan", "scan_area"}
     assert len(enabled) == 26
     r = d.call("surroundings", {})
     assert r["error_code"] == "BLOCKED" and "not available" in r["message"]
@@ -141,6 +141,7 @@ def test_every_tool_callable(tmp_path):
     d, _, _ = _dispatcher(tmp_path)
     minimal = {
         "get_status": {}, "world_info": {}, "surroundings": {}, "geo_scan": {"width": 2, "depth": 2},
+        "scan_area": {"x1": 99, "y1": 64, "z1": 99, "x2": 101, "y2": 64, "z2": 101},
         "move_to": {"x": 100, "y": 64, "z": 104}, "face": {"direction": "east"},
         "move": {"direction": "up"}, "turn": {"direction": "left"},
         "place_at": {"x": 100, "y": 64, "z": 100, "item": "minecraft:cobblestone"},

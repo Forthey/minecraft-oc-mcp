@@ -23,7 +23,8 @@ Most tools come from `oc-mcp`, the team's MCP server for the robot. They are mar
 | `get_status()` | Position, facing and inventory slots: `{pos, facing, inventory: [{slot, count, name}]}` (addition) |
 | `world_info()` | Robot id and name, world id, position and facing (oc-mcp) |
 | `surroundings()` | The six blocks next to the robot, relative to its facing: block id and kind (oc-mcp) |
-| `geo_scan(x, z, y, width, depth, height)` | Hardness of a box around the robot, axes x = right, z = forward, y = up. No block names. `width*depth*height <= 64` (oc-mcp) |
+| `scan_area(x1, y1, z1, x2, y2, z2)` | Scan a world-coordinate box (inclusive, at most 4096 cells) in <=64-block geo_scan chunks. `data.solid`: `[x, y, z, hardness]` of non-air cells, no names. `data.skipped`: chunks farther than 32 blocks from the robot, move closer and scan again (adapter) |
+| `geo_scan(x, z, y, width, depth, height)` | Hardness of a box around the robot, axes x = right, z = forward, y = up. No block names. `width*depth*height <= 64` per call, e.g. 4x4x4; for a bigger area use `scan_area` (oc-mcp) |
 
 ### Movement
 

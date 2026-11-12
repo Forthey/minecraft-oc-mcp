@@ -22,17 +22,20 @@ def _free_port() -> int:
         return s.getsockname()[1]
 
 
-def test_lua_server_start_stop(tmp_path, monkeypatch):
-    monkeypatch.setattr(cli, "LUA_PID", tmp_path / "lua.pid")
-    monkeypatch.setattr(cli, "LUA_LOG", tmp_path / "lua.log")
+def test_hub_start_stop(tmp_path, monkeypatch):
+    import sys
+
+    monkeypatch.setattr(cli, "HUB_PID", tmp_path / "hub.pid")
+    monkeypatch.setattr(cli, "HUB_LOG", tmp_path / "hub.log")
     port = _free_port()
-    assert cli.start_lua(port) is True
+    cmd = [sys.executable, "-m", "adapter", "serve", "--port", str(port), "--bridge-log", str(tmp_path / "b.log")]
+    assert cli.start_hub(port, cmd) is True
     try:
-        assert cli.lua_running(port)
-        assert cli.start_lua(port) is False
+        assert cli.hub_running(port)
+        assert cli.start_hub(port, cmd) is False
     finally:
-        assert cli.stop_lua() is True
-    assert cli.stop_lua() is False
+        assert cli.stop_hub() is True
+    assert cli.stop_hub() is False
 
 
 @pytest.fixture
@@ -76,7 +79,10 @@ def test_workspace_for_all_agents(tmp_path, monkeypatch):
         assert (ws / rel / "oc-orchestrator" / "SKILL.md").exists()
     assert "robot" in json.loads((ws / ".mcp.json").read_text(encoding="utf-8"))["mcpServers"]
     opencode = json.loads((ws / "opencode.json").read_text(encoding="utf-8"))["mcp"]["robot"]
-    assert opencode["type"] == "local" and opencode["command"][1:3] == ["-m", "adapter"]
+    assert opencode == {"type": "remote", "url": aw.MCP_URL, "enabled": True}
+    assert json.loads((ws / ".mcp.json").read_text(encoding="utf-8"))["mcpServers"]["robot"] == \
+        {"type": "http", "url": aw.MCP_URL}
+    assert aw.hub_args()[:3] == ["-m", "adapter", "serve"]
     assert "skills/oc-orchestrator/SKILL.md" in (ws / "AGENTS.md").read_text(encoding="utf-8")
     # Память: тот же сервер во всех форматах, база demo/memory.db.
     claude = json.loads((ws / ".mcp.json").read_text(encoding="utf-8"))["mcpServers"]["memory"]
@@ -94,7 +100,7 @@ def test_agent_command(monkeypatch):
     monkeypatch.setattr(cli.shutil, "which", lambda name: f"/bin/{name}")
     codex = cli.agent_command("codex", ["--model", "m"])
     assert codex[0] == "/bin/codex" and codex[-2:] == ["--model", "m"]
-    assert any(a.startswith("mcp_servers.robot.command=") for a in codex)
+    assert any(a.startswith("mcp_servers.robot.url=") for a in codex)
     assert "mcp_servers.robot.tool_timeout_sec=600" in codex
     assert any(a.startswith("mcp_servers.memory.env.MEMORY_DB=") for a in codex)
     assert cli.agent_command("claude", []) == ["/bin/claude"]

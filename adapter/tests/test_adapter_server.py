@@ -112,6 +112,6 @@ def test_adapter_process_over_stdio(tmp_path):
         names, status = anyio.run(go)
     finally:
         double.stop()
-    assert len(names) == 28 and {"place_at", "nei_find"} <= names
+    assert len(names) == 29 and {"place_at", "nei_find", "scan_area"} <= names
     assert status["ok"] and status["data"]["pos"] == [100, 64, 105]
     assert json.loads((tmp_path / "action_log.jsonl").read_text().splitlines()[0])["tool"] == "get_status"

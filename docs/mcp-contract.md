@@ -28,6 +28,7 @@
 |---|---|
 | `get_status` | oc-orchestrator, oc-design, oc-build, error-handling |
 | `surroundings` | error-handling |
+| `scan_area` | oc-build, error-handling |
 | `move_to` | oc-build, oc-supply, oc-verify, error-handling |
 | `face` | oc-build, oc-supply, oc-verify |
 | `place_at` | oc-build |
@@ -90,7 +91,9 @@
 
 **`surroundings()`** (oc-mcp): шесть соседних блоков относительно направления робота, строками `front: minecraft:stone (solid)`.
 
-**`geo_scan(x, z, y, width, depth, height)`** (oc-mcp): твёрдость блоков бокса в осях робота (x вправо, z вперёд, y вверх), без имён, объём до 64 блоков.
+**`geo_scan(x, z, y, width, depth, height)`** (oc-mcp): твёрдость блоков бокса в осях робота (x вправо, z вперёд, y вверх), без имён, объём до 64 блоков за вызов (например 4x4x4). Для области больше есть `scan_area`.
+
+**`scan_area(x1, y1, z1, x2, y2, z2)`** (адаптер): бокс в мировых координатах, углы включительно, до 4096 клеток. Режется на куски `geo_scan` по 4x4x4. `data.solid` это `[x, y, z, hardness]` непустых клеток без имён, `data.scanned` число просканированных клеток, `data.skipped` куски дальше 32 блоков от робота (геолайзер их не достаёт), `data.failed` число кусков с ошибкой. Результат попадает в карту разведки адаптера, по ней `move_to` строит путь.
 
 ### Движение
 

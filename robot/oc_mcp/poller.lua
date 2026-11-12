@@ -19,9 +19,10 @@ function Poller:request(path, body)
   return http.request(self.internet, self.url .. path, body)
 end
 
-function Poller:sendResult(id, ok, text)
+function Poller:sendResult(id, ok, text, code)
   local result = {id = id, ok = ok}
   if text then result[ok and "text" or "error"] = tostring(text) end
+  if not ok and code then result.code = tostring(code) end
   local _, reason = self:request("/result", json.encodeObject(result))
   if reason then self.log:write("send result failed: " .. tostring(reason)) end
 end
@@ -42,9 +43,9 @@ function Poller:pollOnce(handle)
   local command = body and body.command
   if type(command) ~= "table" or not command.id then return end
   self.log:write("command " .. command.id .. ": " .. tostring(command.type))
-  local ok, text = handle(command)
-  self.log:write("  -> " .. tostring(ok) .. " " .. tostring(text))
-  self:sendResult(command.id, ok, text)
+  local ok, text, code = handle(command)
+  self.log:write("  -> " .. tostring(ok) .. " " .. (code and (code .. " ") or "") .. tostring(text))
+  self:sendResult(command.id, ok, text, code)
 end
 
 function Poller:run(handle)

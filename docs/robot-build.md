@@ -49,6 +49,16 @@ Navigation Upgrade отдаёт координаты относительно ц
 | Microchip (Tier 2) | карта из `oc give` | Microchip (Tier 2) |
 | Gold Ingot | Water Bottle | Gold Ingot |
 
+### Waypoint вместо карты
+
+Если робот вышел за область карты, `getPosition` пуст, но направление и поиск вейпоинтов работают. Поставьте
+рядом блок **Waypoint** (OpenComputers), правый клик и подпись его координатами из F3, например `0 64 0` или
+`base 0 64 0` (берутся три последних числа). Координаты — не самого блока, а клетки перед
+его лицевой стороной (OC отдаёт смещение до неё). Робот ищет
+вейпоинты в радиусе `maxWirelessRange` второго уровня (400 блоков по умолчанию), чанк вейпоинта
+должен быть загружен. Адаптер берёт оттуда стартовую позицию и дальше ведёт её по ходам (`pose_source: waypoint`
+в `get_status`).
+
 ## Шаг 2. Детали
 
 Из творческой вкладки OpenComputers:
@@ -116,7 +126,7 @@ Navigation Upgrade отдаёт координаты относительно ц
 `uv run oc up` печатает эти же команды. В шелле робота:
 
 ```
-wget -f http://127.0.0.1:8770/get.lua /home/get.lua
+wget -f http://127.0.0.1:8765/get.lua /home/get.lua
 /home/get.lua
 oc_mcp
 ```
@@ -142,7 +152,7 @@ oc_mcp
 | Сборка стоит на месте | Нет питания. В `uv run oc status` должно быть `opencomputers config ok`, иначе остановите сервер (`oc down`) и выполните `oc setup` |
 | Робот не загружается: `no bios found; install a configured EEPROM` | EEPROM пустой или его нет: нужен EEPROM (Lua BIOS) |
 | Робот не загружается: `no bootable medium found` | OpenOS не установлена на диск, и дискеты в дисководе нет |
-| `get_status` без координат | Нет Navigation Upgrade |
+| `get_status` без координат | Нет Navigation Upgrade, или робот вне области карты и рядом нет подписанного Waypoint |
 | Координаты не совпадают с F3 | Navigation Upgrade скрафчен не с картой из `oc give` |
 | `ERROR: Internet Card is required` в `oc_mcp.log` | Нет Internet Card |
 | `poll failed` в `oc_mcp.log` | Агент не запущен (мост поднимается вместе с ним) или в конфиге OpenComputers нет доступа к 127.0.0.1 (`oc status`) |

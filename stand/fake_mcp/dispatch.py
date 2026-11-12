@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 import jsonschema
 
+from adapter.tools import SCAN_AREA_DESCRIPTION
 from stand.fake_mcp.action_log import ActionLog
 from stand.fake_mcp.envelope import err, ok
 from stand.fake_mcp.profiles import PROFILES
@@ -49,6 +50,8 @@ TOOL_SPECS: dict[str, ToolSpec] = {
     "surroundings": ToolSpec("state", "The six blocks next to the robot, relative to its facing.", _obj([])),
     "geo_scan": ToolSpec("state", "Hardness of a box around the robot, axes x = right, z = forward, y = up. width*depth*height <= 64.",
                          _obj([], x=OFFSET, z=OFFSET, y=OFFSET, width=SIZE, depth=SIZE, height=SIZE)),
+    "scan_area": ToolSpec("state", SCAN_AREA_DESCRIPTION,
+                          _obj(["x1", "y1", "z1", "x2", "y2", "z2"], x1=INT, y1=INT, z1=INT, x2=INT, y2=INT, z2=INT)),
     # Движение
     "move_to": ToolSpec("movement", "Pathfinding move to a world position. policy: avoid or dig_through.",
                         _obj(["x", "y", "z"], x=INT, y=INT, z=INT, policy={"type": "string", "enum": ["avoid", "dig_through"]})),

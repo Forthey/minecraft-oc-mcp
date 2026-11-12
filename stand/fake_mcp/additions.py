@@ -11,6 +11,7 @@ from __future__ import annotations
 from stand.fake_mcp.envelope import err, ok
 from stand.fake_mcp.geometry import DIRS, FACINGS, add, sub
 from stand.fake_mcp.nei import nei_id
+from adapter.additions import SCAN_MAX, scan_box, scan_chunks, scan_in_range, scan_message, scan_volume
 from adapter.pathfinding import NEIGHBOURS
 from stand.knowledge import normalize_id
 from stand.world.blocks import AIR, parse_block
@@ -121,6 +122,27 @@ class Additions:
         nxt = int(page) + 1 if start + VERIFY_PAGE < len(expected) else None
         message = f"Checked {len(chunk)}: {len(missing)} missing, {len(wrong)} wrong."
         return ok(message, {"checked": len(chunk), "missing": missing, "wrong": wrong, "next_page": nxt})
+
+    def scan_area(self, x1: int, y1: int, z1: int, x2: int, y2: int, z2: int) -> dict:
+        lo, hi = scan_box(x1, y1, z1, x2, y2, z2)
+        if scan_volume(lo, hi) > SCAN_MAX:
+            return err("BLOCKED", f"box has {scan_volume(lo, hi)} cells, scan_area takes at most {SCAN_MAX}: "
+                                  "split it into smaller boxes")
+        solid, scanned, skipped = [], 0, []
+        for c_lo, c_hi in scan_chunks(lo, hi):
+            if not scan_in_range(self.pos, c_lo, c_hi):
+                skipped.append([*c_lo, *c_hi])
+                continue
+            scanned += scan_volume(c_lo, c_hi)
+            for x in range(c_lo[0], c_hi[0] + 1):
+                for y in range(c_lo[1], c_hi[1] + 1):
+                    for z in range(c_lo[2], c_hi[2] + 1):
+                        value = float(self._hardness(self._block_at((x, y, z))))
+                        if value != 0 and (x, y, z) != tuple(self.pos):
+                            solid.append([x, y, z, value])
+        solid.sort()
+        data = {"solid": solid, "scanned": scanned, "skipped": skipped, "failed": 0}
+        return ok(scan_message(scanned, len(solid), len(skipped), 0), data)
 
     def search_docs(self, query: str, mod: str | None = None, limit: int = 5) -> dict:
         docs = self.k.search_docs(query, mod, int(limit))

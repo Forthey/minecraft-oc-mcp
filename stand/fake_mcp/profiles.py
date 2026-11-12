@@ -12,7 +12,7 @@ NEI_TOOLS = {"nei_find", "nei_recipes", "nei_recipe", "nei_craft_tree", "nei_mac
 
 PROFILES: dict[str, dict[str, set[str]]] = {
     "full": {"disabled": set(), "no_provider": set()},
-    "no-vision": {"disabled": {"surroundings", "geo_scan"}, "no_provider": set()},
+    "no-vision": {"disabled": {"surroundings", "geo_scan", "scan_area"}, "no_provider": set()},
     "no-docs": {"disabled": {"search_docs"}, "no_provider": set()},
     "no-nei": {"disabled": set(), "no_provider": NEI_TOOLS},
 }

@@ -43,3 +43,8 @@ bridge/bridge.log
 demo/workspace/
 demo/logs/
 demo/memory.db*
+
+# local hub runtime
+data/
+.oc-tasks/
+.oc-knowledge/

@@ -1,4 +1,4 @@
-local ROOT = "/Users/tozarin/Documents/lua/oc-mcp/lua/"
+local ROOT = os.getenv("OC_MCP_LUA") or "../../"
 package.path = ROOT .. "?.lua;" .. ROOT .. "?/init.lua;" .. package.path
 
 local inv = {}
@@ -69,36 +69,36 @@ local function check(name, cond) print((cond and "PASS " or "FAIL ") .. name) if
 
 inv = {[2] = {name = "minecraft:dirt", damage = 0, size = 5}, [13] = {name = "minecraft:iron_ingot", damage = 0, size = 3, label = "Iron Ingot"}, [14] = {name = "minecraft:stick", damage = 0, size = 4, label = "Stick"}}
 selected = 4
-local ok, text = tool.run(robot, {recipe = "pick", count = 1})
+local ok, text, code = tool.run(robot, {recipe = "pick", count = 1})
 print(text)
 check("pickaxe crafted", ok)
 check("dirt moved out of grid", inv[2] == nil or inv[2].name ~= "minecraft:dirt")
 check("grid laid out: ingots 1,2,3 sticks 6,10", inv[1] and inv[1].name == "minecraft:iron_ingot" and inv[6] and inv[6].name == "minecraft:stick" and inv[10] and inv[10].name == "minecraft:stick")
-check("result slot outside grid", crafted.count == 1 and crafted.slot == 4)
+check("result slot outside grid", crafted.count == 1 and crafted.slot == 8)
 check("selection restored", selected == 4)
 
-inv = {[13] = {name = "minecraft:planks", damage = 2, size = 3}, [15] = {name = "minecraft:planks", damage = 0, size = 1}}
+inv = {[13] = {name = "minecraft:planks", damage = 2, size = 4}, [15] = {name = "minecraft:planks", damage = 0, size = 1}}
 crafted = nil
 ok, text = tool.run(robot, {recipe = "sticks", count = 2})
 print(text)
 check("ore alternatives used", ok and crafted.count == 2 and inv[1].size == 2 and inv[5].size == 2)
 
 inv = {[13] = {name = "minecraft:iron_ingot", damage = 0, size = 1}}
-ok, text = tool.run(robot, {recipe = "pick", count = 1})
+ok, text, code = tool.run(robot, {recipe = "pick", count = 1})
 print(text)
-check("missing reported", not ok and text:find("Iron Ingot") ~= nil and text:find("Stick") ~= nil)
+check("missing reported", code == "NO_ITEM" and not ok and text:find("Iron Ingot") ~= nil and text:find("Stick") ~= nil)
 
-ok, text = tool.run(robot, {recipe = "furnace", count = 1})
+ok, text, code = tool.run(robot, {recipe = "furnace", count = 1})
 print(text)
-check("non-crafting refused", not ok and text:find("nei_machine_plan") ~= nil)
+check("non-crafting refused", code == "NO_RECIPE" and not ok and text:find("nei_machine_plan") ~= nil)
 
-ok, text = tool.run(robot, {recipe = "nope", count = 1})
+ok, text, code = tool.run(robot, {recipe = "nope", count = 1})
 print(text)
-check("unknown recipe", not ok and text:find("UNKNOWN_RECIPE") ~= nil)
+check("unknown recipe", code == "NO_RECIPE" and not ok and text:find("UNKNOWN_RECIPE") ~= nil)
 
 inv = {}
 for s = 1, 16 do inv[s] = {name = "minecraft:dirt", damage = s, size = 1} end
-ok, text = tool.run(robot, {recipe = "pick", count = 1})
+ok, text, code = tool.run(robot, {recipe = "pick", count = 1})
 print(text)
-check("full inventory reported", not ok and text:find("no room") ~= nil)
+check("full inventory reported", code == "INVENTORY_FULL" and not ok and text:find("no room") ~= nil)
 print("ALL OK")

@@ -19,6 +19,7 @@ You are the builder for exactly one stage. You place the stage's blocks and fill
 1. `get_status()`: position, facing and inventory slots.
 2. Find out what is already done (see [Partially built stage](#partially-built-stage)).
 3. Check that the inventory holds the items for the remaining blocks and slots (`inventory_scan()`). If an item is missing, return `BLOCKED` at once. Supply is not your job.
+4. If the stage area or the way to it has not been scanned yet in this task, call `scan_area` over the stage bounding box plus one block around it. `move_to` and `place_at` plan paths only around blocks the robot has seen. Do not call `geo_scan` for this: it takes at most 64 blocks per call.
 
 ## Partially built stage
 

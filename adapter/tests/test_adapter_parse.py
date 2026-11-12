@@ -23,8 +23,7 @@ def sim():
 def test_parse_slots(sim):
     slots = parse_slots(sim.inventory_scan()["message"])
     assert slots[0] == {"slot": 1, "count": 9, "name": "minecraft:cobblestone:0", "label": "Cobblestone"}
-    # oc-mcp не печатает damage, поэтому planks:1 читается как planks:0 (TODO damage).
-    assert slots[1]["name"] == "minecraft:planks:0" and slots[1]["count"] == 4
+    assert slots[1]["name"] == "minecraft:planks:1" and slots[1]["count"] == 4
     assert parse_slots("Robot inventory is empty.") == []
 
 

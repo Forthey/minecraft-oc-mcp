@@ -7,6 +7,8 @@ turn относительны. Поэтому адаптер берёт пози
 
 from __future__ import annotations
 
+import re
+
 Pos = tuple[int, int, int]
 
 FACINGS = ("north", "east", "south", "west")
@@ -22,6 +24,23 @@ TURNS = {"right": 1, "around": 2, "left": 3}
 SIDE_TURNS = {"front": 0, "right": 1, "back": 2, "left": 3}
 
 
+def label_coords(label: str) -> Pos | None:
+    numbers = re.findall(r"-?\d+", label or "")
+    if len(numbers) < 3:
+        return None
+    x, y, z = (int(n) for n in numbers[-3:])
+    return (x, y, z)
+
+
+def waypoint_pos(waypoints) -> Pos | None:
+    for w in waypoints or []:
+        coords = label_coords(str(w.get("label", "")))
+        if coords is None or not all(isinstance(w.get(k), (int, float)) for k in ("dx", "dy", "dz")):
+            continue
+        return (coords[0] - int(w["dx"]), coords[1] - int(w["dy"]), coords[2] - int(w["dz"]))
+    return None
+
+
 def _add(a: Pos, b: Pos, n: int = 1) -> Pos:
     return (a[0] + b[0] * n, a[1] + b[1] * n, a[2] + b[2] * n)
 
@@ -32,6 +51,7 @@ class Pose:
     def __init__(self, pos: Pos | None = None, facing: str | None = None):
         self.pos = tuple(pos) if pos is not None else None
         self.facing = facing
+        self.source = None
 
     @property
     def known(self) -> bool:
@@ -39,11 +59,20 @@ class Pose:
 
     def sync(self, info: dict) -> bool:
         """Берёт позицию из ответа world_info. False, если в нём нет координат или направления."""
-        if all(k in info for k in ("x", "y", "z")) and info.get("facing") in FACINGS:
+        if info.get("facing") not in FACINGS:
+            return False
+        if all(k in info for k in ("x", "y", "z")):
             self.pos = (int(info["x"]), int(info["y"]), int(info["z"]))
             self.facing = info["facing"]
+            self.source = "navigation"
             return True
-        return False
+        pos = waypoint_pos(info.get("waypoints"))
+        if pos is None:
+            return False
+        self.pos = pos
+        self.facing = info["facing"]
+        self.source = "waypoint"
+        return True
 
     def dir_to(self, direction: str) -> Pos:
         """Вектор стороны света или up и down."""

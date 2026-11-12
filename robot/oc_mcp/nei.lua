@@ -15,6 +15,12 @@ local function recipeIdHint(recipe)
   return ""
 end
 
+local CODES = {NO_PROVIDER = "NO_PROVIDER", UNKNOWN_ITEM = "UNKNOWN_ITEM", UNKNOWN_RECIPE = "NO_RECIPE"}
+
+local function contractCode(code)
+  return CODES[code] or "UNKNOWN"
+end
+
 local function call(name, args)
   local answer = tools.call(name, args)
   if not answer.ok then
@@ -22,7 +28,7 @@ local function call(name, args)
     local text = tostring(err.code) .. ": " .. tostring(err.message)
     if err.hint then text = text .. " (" .. err.hint .. ")" end
     if err.code == "UNKNOWN_RECIPE" then text = text .. recipeIdHint(args.recipe) end
-    return false, text
+    return false, text, contractCode(err.code)
   end
   return true, tools.json.encode(answer.result)
 end
@@ -33,9 +39,9 @@ function nei.rawRecipe(id)
   local ok, recipe = pcall(tools.rawRecipe, id)
   if ok then return recipe end
   if type(recipe) == "table" then
-    return nil, tostring(recipe.code) .. ": " .. tostring(recipe.message) .. recipeIdHint(id)
+    return nil, tostring(recipe.code) .. ": " .. tostring(recipe.message) .. recipeIdHint(id), contractCode(recipe.code)
   end
-  return nil, tostring(recipe)
+  return nil, tostring(recipe), "UNKNOWN"
 end
 
 function nei.inventoryHave(robot)

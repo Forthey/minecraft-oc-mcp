@@ -1,8 +1,8 @@
-"""CLI демо: сервер стенда, раздача Lua роботу, рабочая папка агента, моды клиента.
+"""CLI демо: сервер стенда, хаб робота (мост, адаптер, Lua, MCP по HTTP), рабочая папка агента, моды клиента.
 
   uv run oc setup                 один раз: Forge, моды, конфиги, шаблон мира, карта для Navigation Upgrade
-  uv run oc up [--reset]          сервер + раздача Lua + рабочая папка агента; --reset заново ставит площадку
-  uv run oc down                  остановить сервер и раздачу Lua
+  uv run oc up [--reset]          сервер + хаб робота :8765 + рабочая папка агента; --reset заново ставит площадку
+  uv run oc down                  остановить сервер и хаб робота
   uv run oc status                что запущено и что настроено
   uv run oc give <ник>            op и предметы для Navigation Upgrade игроку онлайн
   uv run oc client-mods [--dest]  скопировать моды сервера в клиент
@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import signal
@@ -26,21 +27,22 @@ import time
 import urllib.request
 from pathlib import Path
 
-from demo import agent_workspace, lua_server
+from adapter.robot_files import robot_commands
+from demo import agent_workspace
 from stand.config import Config, load_config
 from stand.rcon import Rcon, RconError
 from stand.server import navmap, process, setup
 
-LUA_PID = agent_workspace.LOGS / "lua_server.pid"
-LUA_LOG = agent_workspace.LOGS / "lua_server.log"
-BRIDGE_PORT = 8765
+HUB_PID = agent_workspace.LOGS / "hub.pid"
+HUB_LOG = agent_workspace.LOGS / "hub.log"
+HUB_PORT = agent_workspace.HUB_PORT
 # Предметы для Navigation Upgrade, кроме карты и Microchip (Tier 2): чип берётся в творческой вкладке.
 NAV_ITEMS = ["gold_ingot 4", "compass 1", "potion 1 0", "crafting_table 1"]
 
 
-# --- раздача Lua ---------------------------------------------------------------
+# --- хаб: мост, адаптер, раздача Lua и MCP по HTTP -------------------------------
 
-def lua_running(port: int = lua_server.DEFAULT_PORT) -> bool:
+def hub_running(port: int = HUB_PORT) -> bool:
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/get.lua", timeout=1) as r:
             return r.status == 200
@@ -48,9 +50,8 @@ def lua_running(port: int = lua_server.DEFAULT_PORT) -> bool:
         return False
 
 
-def start_lua(port: int = lua_server.DEFAULT_PORT) -> bool:
-    """Запускает раздачу Lua фоновым процессом. False, если она уже работала."""
-    if lua_running(port):
+def start_hub(port: int = HUB_PORT, command: list[str] | None = None) -> bool:
+    if hub_running(port):
         return False
     agent_workspace.LOGS.mkdir(parents=True, exist_ok=True)
     kwargs = {}
@@ -59,32 +60,31 @@ def start_lua(port: int = lua_server.DEFAULT_PORT) -> bool:
         kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
     else:
         kwargs["start_new_session"] = True
-    with open(LUA_LOG, "ab") as log:
-        proc = subprocess.Popen([sys.executable, "-m", "demo.lua_server", "--port", str(port)],
-                                cwd=agent_workspace.ROOT, stdin=subprocess.DEVNULL, stdout=log,
+    cmd = command or [sys.executable, *agent_workspace.hub_args(port)]
+    with open(HUB_LOG, "ab") as log:
+        proc = subprocess.Popen(cmd, cwd=agent_workspace.ROOT, stdin=subprocess.DEVNULL, stdout=log,
                                 stderr=subprocess.STDOUT, **kwargs)
-    LUA_PID.write_text(str(proc.pid), encoding="utf-8")
-    deadline = time.monotonic() + 10
+    HUB_PID.write_text(str(proc.pid), encoding="utf-8")
+    deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
-        if lua_running(port):
+        if hub_running(port):
             return True
         if proc.poll() is not None:
             break
         time.sleep(0.2)
-    raise RuntimeError(f"lua server did not start, see {LUA_LOG}")
+    raise RuntimeError(f"robot hub did not start, see {HUB_LOG}")
 
 
-def stop_lua() -> bool:
-    """Останавливает раздачу Lua, запущенную через oc up. False, если её не было."""
-    if not LUA_PID.exists():
+def stop_hub() -> bool:
+    if not HUB_PID.exists():
         return False
     try:
-        pid = int(LUA_PID.read_text(encoding="utf-8").strip())
+        pid = int(HUB_PID.read_text(encoding="utf-8").strip())
         os.kill(pid, signal.SIGTERM)
         stopped = True
     except (ValueError, OSError):
         stopped = False
-    LUA_PID.unlink(missing_ok=True)
+    HUB_PID.unlink(missing_ok=True)
     return stopped
 
 
@@ -140,20 +140,21 @@ def cmd_up(cfg: Config, args) -> int:
         scenario = load_scenario(agent_workspace.SCENARIO)
         prepare(cfg, scenario, Knowledge.load(KNOWLEDGE_DIR, scenario.knowledge))
         print("play area: reset, warehouse filled")
-    started = start_lua()
-    print(f"lua server: http://127.0.0.1:{lua_server.DEFAULT_PORT} ({'started' if started else 'already running'})")
+    started = start_hub()
+    print(f"robot hub: {agent_workspace.HUB_URL} (MCP {agent_workspace.MCP_URL}, "
+          f"{'started' if started else 'already running'})")
     print(f"agent workspace: {agent_workspace.build()}")
     print()
     print("next:")
     print("  robot shell, first time:")
-    for c in lua_server.robot_commands():
+    for c in robot_commands(agent_workspace.HUB_URL):
         print(f"    {c}")
     print("  agent:  uv run oc agent claude   (or codex, opencode)")
     return 0
 
 
 def cmd_down(cfg: Config, args) -> int:
-    print("lua server: " + ("stopped" if stop_lua() else "was not started by oc up"))
+    print("robot hub: " + ("stopped" if stop_hub() else "was not started by oc up"))
     if process.is_running(cfg):
         process.stop_server(cfg)
         print("minecraft server: stopped")
@@ -167,9 +168,9 @@ def cmd_status(cfg: Config, args) -> int:
     map_id = navmap.find_nav_map(cfg.world_dir) if cfg.world_dir.exists() else None
     rows = [
         ("minecraft server", "running" if server else "not running (oc up)"),
-        ("lua server", f"running, robot: {lua_server.robot_commands()[0]}" if lua_running() else "not running (oc up)"),
-        ("bridge :8765", "listening (agent is running)" if port_open(BRIDGE_PORT)
-         else "closed (starts with the agent: claude in the workspace)"),
+        (f"robot hub :{HUB_PORT}", f"running, MCP {agent_workspace.MCP_URL}, robot: "
+         f"{robot_commands(agent_workspace.HUB_URL)[0]}" if hub_running()
+         else ("port busy, not the hub" if port_open(HUB_PORT) else "not running (oc up)")),
         ("opencomputers config", oc_config_state(cfg)),
         ("navigation map", f"map_{map_id}" if map_id is not None else "missing (stop the server, run: oc setup)"),
         ("agent workspace", str(agent_workspace.WS) if (agent_workspace.WS / ".mcp.json").exists()
@@ -241,13 +242,19 @@ def cmd_workspace(cfg: Config, args) -> int:
 def agent_command(agent: str, extra: list[str]) -> list[str]:
     """Команда запуска агента в demo/workspace. Claude Code и opencode берут MCP из файлов папки,
     Codex проектный конфиг в непроверенной папке не читает, поэтому сервер передаётся флагами -c."""
-    from stand.runner.workspace import codex_mcp_args
+    from stand.runner.workspace import CODEX_TOOL_TIMEOUT_S, codex_mcp_args
 
     exe = shutil.which(agent)
     if exe is None:
         raise FileNotFoundError(f"{agent} is not in PATH")
     if agent == "codex":
-        flags = [a for name, spec in agent_workspace.servers().items() for a in codex_mcp_args(spec, name)]
+        flags = []
+        for name, spec in agent_workspace.servers().items():
+            if "url" in spec:
+                flags += ["-c", f"mcp_servers.{name}.url={json.dumps(spec['url'])}",
+                          "-c", f"mcp_servers.{name}.tool_timeout_sec={CODEX_TOOL_TIMEOUT_S}"]
+            else:
+                flags += codex_mcp_args(spec, name)
         return [exe, *flags, *extra]
     return [exe, *extra]
 
@@ -303,9 +310,9 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("setup", help="install Forge, mods, configs, world template, navigation map")
     p.add_argument("--pin", action="store_true", help="write sha256 of mods into mods.yaml")
-    p = sub.add_parser("up", help="start the server, the Lua server for the robot and build the agent workspace")
+    p = sub.add_parser("up", help="start the server, the robot hub and build the agent workspace")
     p.add_argument("--reset", action="store_true", help="reset the play area and refill the warehouse")
-    sub.add_parser("down", help="stop the server and the Lua server")
+    sub.add_parser("down", help="stop the server and the robot hub")
     sub.add_parser("status", help="show what is running and configured")
     p = sub.add_parser("give", help="op and Navigation Upgrade items for an online player")
     p.add_argument("nick")

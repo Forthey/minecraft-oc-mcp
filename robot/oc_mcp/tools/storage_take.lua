@@ -3,7 +3,7 @@ return {
   run = function(robot, args)
     local taken, reason = robot:take(args.side, args.slot, args.count, args.robot_slot)
     if not taken or taken == 0 then
-      return false, "cannot take items from " .. args.side .. " slot " .. args.slot .. ": " .. tostring(reason)
+      return false, "cannot take items from " .. args.side .. " slot " .. args.slot .. ": " .. tostring(reason), "BLOCKED"
     end
     return true, "Took items from " .. args.side .. " slot " .. args.slot .. "."
   end,

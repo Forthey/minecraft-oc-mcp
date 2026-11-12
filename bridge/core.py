@@ -21,6 +21,15 @@ def rpc_error(request_id, code, message):
     return {"jsonrpc": "2.0", "id": request_id, "error": {"code": code, "message": message}}
 
 
+def tool_error(code, text):
+    return {"content": [{"type": "text", "text": text}], "isError": True,
+            "structuredContent": {"error_code": code}}
+
+
+class ArgumentError(Exception):
+    pass
+
+
 class Bridge:
     def __init__(self, tools, host="127.0.0.1", port=8765, log_file=None, world_id=None):
         self.tools = {tool.name: tool for tool in tools}
@@ -31,10 +40,15 @@ class Bridge:
         self._commands = queue.Queue()
         self._results = {}
         self._results_condition = threading.Condition()
+        self._log_lock = threading.Lock()
+        self._log = None
 
     def log(self, message):
-        with self.log_file.open("a") as f:
-            f.write(message + "\n")
+        with self._log_lock:
+            if self._log is None:
+                self._log = self.log_file.open("a", encoding="utf-8")
+            self._log.write(message + "\n")
+            self._log.flush()
 
 
     def start_http_server(self):
@@ -42,13 +56,13 @@ class Bridge:
         threading.Thread(target=server.serve_forever, daemon=True).start()
         return server
 
-    def _next_command(self):
+    def next_command(self):
         try:
             return self._commands.get_nowait()
         except queue.Empty:
             return None
 
-    def _store_result(self, result):
+    def store_result(self, result):
         with self._results_condition:
             self._results[result["id"]] = result
             self._results_condition.notify_all()
@@ -78,7 +92,7 @@ class Bridge:
                 if self.path != "/poll":
                     self._json(404, {"error": "not found"})
                     return
-                self._json(200, {"command": bridge._next_command()})
+                self._json(200, {"command": bridge.next_command()})
 
             def do_POST(self):
                 length = int(self.headers.get("Content-Length", "0") or 0)
@@ -93,7 +107,7 @@ class Bridge:
                 except (ValueError, KeyError, TypeError):
                     self._json(400, {"error": "invalid result"})
                     return
-                bridge._store_result(result)
+                bridge.store_result(result)
                 self._json(200, {"ok": True})
 
         return Handler
@@ -111,34 +125,43 @@ class Bridge:
         if method == "notifications/initialized":
             return None
         if method == "tools/list":
-            return rpc_result(request_id, {"tools": [
-                {"name": t.name, "description": t.description, "inputSchema": t.schema()}
-                for t in self.tools.values()]})
+            return rpc_result(request_id, {"tools": self.list_tools()})
         if method == "tools/call":
             return self._call_tool(request_id, request.get("params", {}))
         return rpc_error(request_id, -32601, "method not found")
 
-    def _call_tool(self, request_id, params):
-        tool = self.tools.get(params.get("name"))
+    def list_tools(self):
+        return [{"name": t.name, "description": t.description, "inputSchema": t.schema()}
+                for t in self.tools.values()]
+
+    def run_tool(self, name, arguments):
+        tool = self.tools.get(name)
         if tool is None:
-            return rpc_error(request_id, -32602, "unknown tool")
-        arguments = params.get("arguments", {})
+            raise ArgumentError("unknown tool")
+        arguments = {} if arguments is None else arguments
         argument_error = tool.validate(arguments)
         if argument_error:
-            return rpc_error(request_id, -32602, argument_error)
+            raise ArgumentError(argument_error)
         command_id = uuid.uuid4().hex
         self._commands.put({"id": command_id, "type": tool.name,
                             **tool.prepare(arguments), **tool.context(self)})
         result = self._wait_for_result(command_id, tool.timeout)
         if result is None:
-            return rpc_error(request_id, -32000,
-                             f"OpenComputers did not respond within {tool.timeout:g}s. The command may still "
-                             "run later (singleplayer pauses when the game window loses focus): check the state, "
-                             "e.g. with inventory_scan, before retrying.")
+            return False, (f"OpenComputers did not respond within {tool.timeout:g}s. The command may still "
+                           "run later (singleplayer pauses when the game window loses focus): check the state, "
+                           "e.g. with inventory_scan, before retrying."), "CONNECTION_LOST"
         if not result.get("ok"):
-            return rpc_error(request_id, -32001, result.get("error", "command failed"))
-        return rpc_result(request_id, {
-            "content": [{"type": "text", "text": result.get("text", "Done.")}]})
+            return False, result.get("error", "command failed"), result.get("code") or "UNKNOWN"
+        return True, result.get("text", "Done."), None
+
+    def _call_tool(self, request_id, params):
+        try:
+            ok, text, code = self.run_tool(params.get("name"), params.get("arguments", {}))
+        except ArgumentError as e:
+            return rpc_error(request_id, -32602, str(e))
+        if not ok:
+            return rpc_result(request_id, tool_error(code, text))
+        return rpc_result(request_id, {"content": [{"type": "text", "text": text}]})
 
     def serve_stdio(self):
         self.start_http_server()

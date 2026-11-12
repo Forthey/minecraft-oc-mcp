@@ -3,7 +3,8 @@
 from adapter.tools import ADDITION_SPECS
 from stand.fake_mcp.dispatch import TOOL_SPECS
 
-ADDITIONS = {"move_to", "face", "place_at", "get_status", "verify_blocks", "search_docs", "get_action_log"}
+ADDITIONS = {"move_to", "face", "place_at", "get_status", "verify_blocks", "search_docs", "get_action_log",
+             "scan_area"}
 
 
 def test_addition_specs_match_fake():

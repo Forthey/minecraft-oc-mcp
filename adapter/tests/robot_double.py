@@ -2,7 +2,7 @@
 
 Протокол повторяет lua/oc_mcp/poller.lua: GET /poll отдаёт {"command": {...} | null},
 команда исполняется, результат уходит POST /result как {"id", "ok", "text"} или
-{"id", "ok", "error"}. Команда исполняется методом RobotSim с тем же именем, его
+{"id", "ok", "error", "code"}. Команда исполняется методом RobotSim с тем же именем, его
 текст ответа это строки Lua oc-mcp (stand/fake_mcp/texts.py).
 """
 
@@ -22,10 +22,11 @@ class RobotDouble:
     """Поток, который опрашивает мост и исполняет команды на RobotSim."""
 
     def __init__(self, sim: RobotSim, url: str, navigation: bool = True, disabled: dict[str, str] | None = None,
-                 delay: float = 0.02):
+                 delay: float = 0.02, waypoints: list[tuple[str, tuple[int, int, int]]] | None = None):
         self.sim = sim
         self.url = url
         self.navigation = navigation
+        self.waypoints = waypoints
         self.disabled = dict(disabled or {})
         self.delay = delay
         self._stop = threading.Event()
@@ -52,23 +53,34 @@ class RobotDouble:
             reply = self._request("/poll")
             command = (reply or {}).get("command")
             if command:
-                ok, text = self.handle(command)
-                self._request("/result", {"id": command["id"], "ok": ok, ("text" if ok else "error"): text})
+                ok, text, code = self.handle(command)
+                result = {"id": command["id"], "ok": ok, ("text" if ok else "error"): text}
+                if not ok and code:
+                    result["code"] = code
+                self._request("/result", result)
             else:
                 self._stop.wait(self.delay)
 
-    def handle(self, command: dict) -> tuple[bool, str]:
-        """Исполняет команду моста и возвращает (ok, text), как run() Lua-tool."""
+    def handle(self, command: dict) -> tuple[bool, str, str | None]:
         name = command.get("type")
         if name in self.disabled:
-            return False, f"tool {name} is disabled: {self.disabled[name]}"
+            return False, f"tool {name} is disabled: {self.disabled[name]}", "UNSUPPORTED"
+        if name == "world_info" and self.waypoints is not None:
+            pos = self.sim.pos
+            found = [{"label": label, "dx": wx - pos[0], "dy": wy - pos[1], "dz": wz - pos[2]}
+                     for label, (wx, wy, wz) in self.waypoints]
+            info = {"robot_id": "fake-robot", "robot_name": "robot", "world_id": command.get("world_id", "stand"),
+                    "facing": self.sim.facing, "waypoints": found,
+                    "position_error": "navigation upgrade: out of range (robot is outside the map area the upgrade "
+                                      "was crafted with)"}
+            return True, json.dumps(info), None
         if name == "world_info" and not self.navigation:
             info = {"robot_id": "fake-robot", "robot_name": "robot", "world_id": command.get("world_id", "stand"),
                     "position_error": "no navigation upgrade: position unknown"}
-            return True, json.dumps(info)
+            return True, json.dumps(info), None
         method = getattr(self.sim, name, None)
         if method is None:
-            return False, f"unknown command type: {name}"
+            return False, f"unknown command type: {name}", "UNSUPPORTED"
         args = {k: v for k, v in command.items() if k not in SERVICE_KEYS}
         env = method(**args)
-        return env["ok"], env["message"]
+        return env["ok"], env["message"], env.get("error_code")

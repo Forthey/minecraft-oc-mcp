@@ -23,7 +23,8 @@ class StubUpstream:
     async def call(self, name, args):
         self.calls.append(name)
         a = self.answers[name]
-        return a.pop(0) if isinstance(a, list) else a
+        a = a.pop(0) if isinstance(a, list) else a
+        return (*a, None) if len(a) == 2 else a
 
 
 def test_pose_synced_lazily_on_first_addition():

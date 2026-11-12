@@ -96,7 +96,7 @@ def test_storage_scan_lines_and_data(k):
     r = sim.storage_scan("front")
     assert r["ok"]
     assert r["message"].splitlines()[:3] == [
-        "Block: minecraft:chest", "Storage has 27 slots.", "slot 1: 32x minecraft:cobblestone (Cobblestone)",
+        "Block: minecraft:chest", "Storage has 27 slots.", "slot 1: 32x minecraft:cobblestone:0 (Cobblestone)",
     ]
     assert r["data"]["slots"] == [{"slot": 1, "count": 32, "name": "minecraft:cobblestone:0", "label": "Cobblestone"}]
     assert r["data"]["size"] == 27 and r["data"]["block"] == "minecraft:chest"
@@ -107,7 +107,7 @@ def test_inventory_scan_lines_and_empty(k):
     sim = _sim(k, inventory=[{"item": "minecraft:planks:1", "count": 4}])
     r = sim.inventory_scan()
     label = k.items["minecraft:planks:1"]["name"]
-    assert r["message"] == f"slot 1: 4x minecraft:planks ({label})"
+    assert r["message"] == f"slot 1: 4x minecraft:planks:1 ({label})"
     assert r["data"]["slots"][0]["name"] == "minecraft:planks:1"
 
 
@@ -246,10 +246,10 @@ def test_recipe_given_item_id_gets_hint(k):
                             "recipe id: get recipe ids (like r7fbebd0471463308) from nei_recipes.")
 
 
-def test_scan_text_has_no_damage_like_oc_mcp(k):
+def test_scan_text_has_damage_like_oc_mcp(k):
     sim = _sim(k, inventory=[{"item": "minecraft:planks:1", "count": 4}])
     r = sim.inventory_scan()
-    assert r["message"].startswith("slot 1: 4x minecraft:planks (")
+    assert r["message"].startswith("slot 1: 4x minecraft:planks:1 (")
     assert r["data"]["slots"][0]["name"] == "minecraft:planks:1"
     s = sim.storage_scan("front")
-    assert "slot 1: 32x minecraft:cobblestone (Cobblestone)" in s["message"]
+    assert "slot 1: 32x minecraft:cobblestone:0 (Cobblestone)" in s["message"]

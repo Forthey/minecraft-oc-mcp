@@ -9,7 +9,7 @@ Every role follows this file. Budget names refer to keys in [config.md](config.m
 | Code | First | Second | Then |
 |---|---|---|---|
 | `BLOCKED` | `surroundings` to learn what is next to the robot | Change approach: other side, other approach position, or reorder placement if your own block is in the way | Return `BLOCKED` with what you saw |
-| `NO_PATH` | Pick another approach position next to the target, still with `policy: avoid` | Retry `move_to` with `policy: dig_through` only if no placed structure block, warehouse or machine is near the path, or the stage has gate `dig_near_structure`. Otherwise skip this reaction | Return `BLOCKED` with a hypothesis, for example "target enclosed by own blocks" |
+| `NO_PATH` | `scan_area` around the target and the way to it, then pick another approach position next to the target, still with `policy: avoid` | Retry `move_to` with `policy: dig_through` only if no placed structure block, warehouse or machine is near the path, or the stage has gate `dig_near_structure`. Otherwise skip this reaction | Return `BLOCKED` with a hypothesis, for example "target enclosed by own blocks" |
 | `OUT_OF_RANGE` | `get_status` and check the target coordinates for a typo or wrong origin | none | Return `BLOCKED` |
 | `NO_ITEM` | `inventory_scan` to confirm | Builder and verifier: return `BLOCKED`, supply is not your job. Supplier: check the warehouse with `storage_scan` | Return `PARTIAL` with the missing items |
 | `INVENTORY_FULL` | Supplier: split the transfer into several trips. Builder: `storage_put` unused items back into the warehouse | none | Return `BLOCKED` |
@@ -20,7 +20,7 @@ Every role follows this file. Budget names refer to keys in [config.md](config.m
 | `NO_RECIPE` | `nei_recipes` again for a fresh recipe id, or with an alternative item from `nei_find` | none | Return `PARTIAL`. The orchestrator treats the item as missing |
 | `TIMEOUT` | `get_status` to see whether the action happened | Repeat once only if the state shows it did not happen | Return `BLOCKED` |
 | `CONNECTION_LOST` | Do not repeat the action. Call `get_status` and compare position and inventory with the journal and your last report | Continue from the real state, not from the assumed one | If `get_status` keeps failing, return `BLOCKED` |
-| `UNSUPPORTED` | Do not retry. Note the tool and the missing component from the message | none | Return `BLOCKED` with the tool and the component. The orchestrator tells the user which upgrade the robot needs |
+| `UNSUPPORTED` | Do not retry. Note the tool and the missing component from the message | none | Return `BLOCKED` with the tool and the component. The orchestrator tells the user which upgrade the robot needs. If the message says "position unknown" and mentions a Waypoint, ask the player to place an OpenComputers Waypoint near the robot labeled with the F3 coordinates of the cell in front of its face, e.g. `0 64 0`, then call `get_status` again |
 | `NO_PROVIDER` | Do not retry right away. If your role has another knowledge source (researcher: `search_docs` or the web), use it | none | Return `BLOCKED` with "recipe data unavailable". The orchestrator asks the user to join the game with NEI |
 | `UNKNOWN` | Do not retry. Quote the message | none | Return `BLOCKED` with the message |
 

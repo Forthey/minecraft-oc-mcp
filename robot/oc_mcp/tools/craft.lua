@@ -32,16 +32,16 @@ return {
   end,
   run = function(robot, args)
     if args.result_slot and isGridSlot(args.result_slot) then
-      return false, "result_slot " .. args.result_slot .. " is inside the crafting grid, use 4, 8, 12 or 13+"
+      return false, "result_slot " .. args.result_slot .. " is inside the crafting grid, use 4, 8, 12 or 13+", "BLOCKED"
     end
     local grid = robot:craftGrid()
     if next(grid) == nil then
-      return false, "crafting grid is empty (grid slots are 1,2,3 / 5,6,7 / 9,10,11)"
+      return false, "crafting grid is empty (grid slots are 1,2,3 / 5,6,7 / 9,10,11)", "NO_ITEM"
     end
     local crafted = robot:craft(args.count, args.result_slot)
     if not crafted then
       return false, "no recipe matches the grid, or there is no free slot for the result. Current grid:\n"
-        .. describeGrid(grid)
+        .. describeGrid(grid), "NO_RECIPE"
     end
     return true, "Crafted. Use inventory_scan to see the result."
   end,

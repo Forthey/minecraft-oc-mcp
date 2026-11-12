@@ -151,7 +151,8 @@ def test_geo_scan_volume_limit_and_values(k):
     r = sim.geo_scan(x=0, z=1, y=-1, width=1, depth=1, height=2)
     assert r["ok"]
     # Ось z робота смотрит вперёд (north): z=1 это клетка (100, *, 104). y=-1 пол, y=0 камень.
-    assert r["message"].splitlines()[1:] == ["y=-1", "1.5", "y=0", "1.5"]
+    assert r["message"].splitlines()[1:] == ["y=-1 (rows z=1..1, columns x=0..0):", "1.5",
+                                             "y=0 (rows z=1..1, columns x=0..0):", "1.5"]
 
 
 def test_world_info_shape(k):

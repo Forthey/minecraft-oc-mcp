@@ -25,13 +25,13 @@ return {
     local x, z, y = args.x, args.z, args.y
     local width, depth, height = args.width, args.depth, args.height
     if width * depth * height > MAX_VOLUME then
-      return false, "width*depth*height must be <= " .. MAX_VOLUME
+      return false, "width*depth*height must be <= " .. MAX_VOLUME, "BLOCKED"
     end
     local axes = robot:axes()
     local scanX, scanZ, scanWidth, scanDepth = x, z, width, depth
     if axes then scanX, scanZ, scanWidth, scanDepth = worldBox(axes, x, z, width, depth) end
     local ok, data = pcall(robot.geoScan, robot, scanX, scanZ, y, scanWidth, scanDepth, height)
-    if not ok or type(data) ~= "table" then return false, "scan failed: " .. tostring(data) end
+    if not ok or type(data) ~= "table" then return false, "scan failed: " .. tostring(data), "UNKNOWN" end
 
     local xName, zName = "east", "south"
     if axes then xName, zName = "right", "forward" end

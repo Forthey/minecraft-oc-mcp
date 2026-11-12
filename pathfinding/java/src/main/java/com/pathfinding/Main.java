@@ -4,7 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] rawArgs) {
+        boolean cells = false;
+        List<String> positional = new ArrayList<>();
+        for (String a : rawArgs) {
+            if (a.equals("--cells")) cells = true;
+            else positional.add(a);
+        }
+        String[] args = positional.toArray(new String[0]);
         if (args.length < 8) {
             System.err.println("Использование: java -jar pathfinding.jar <путь_к_миру> <X1> <Y1> <Z1> <X2> <Y2> <Z2> <Направление>");
             System.err.println("Направление: North, South, East, West");
@@ -127,6 +134,17 @@ public class Main {
         }
 
         // 6. Сжатие пути
+        if (cells) {
+            StringBuilder sb = new StringBuilder("[");
+            for (int i = 0; i < allBlockPath.size(); i++) {
+                int[] p = allBlockPath.get(i);
+                if (i > 0) sb.append(',');
+                sb.append('[').append(p[0]).append(',').append(p[1]).append(',').append(p[2]).append(']');
+            }
+            System.out.println(sb.append(']'));
+            return;
+        }
+
         List<String> absoluteCommands = PathCompressor.compress(allBlockPath);
 
         // 7. Преобразование в относительные команды

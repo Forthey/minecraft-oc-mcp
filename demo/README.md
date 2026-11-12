@@ -7,18 +7,18 @@
 клиент Minecraft -----> сервер стенда (Forge 1.7.10, localhost:25565, RCON 25575)
                           робот OpenComputers: oc_mcp.lua опрашивает 127.0.0.1:8765
                                                             |
-агент в demo/workspace --MCP--> адаптер (python -m adapter) --MCP--> мост oc-mcp (:8765)
-                                карта-оракул: снимок региона через RCON
+агент в demo/workspace --MCP HTTP :8765/mcp--> хаб (python -m adapter serve): адаптер + мост + раздача Lua
+                                               карта-оракул: снимок региона через RCON
 ```
 
-Адаптер (`adapter/`) и мост (`bridge/`) запускает сам агент по конфигу MCP из `demo/workspace`, отдельно их
-запускать не надо. Всё остальное делает CLI `oc` (`demo/cli.py`). Он работает из любого каталога и на любой ОС:
+Хаб (`adapter/` и `bridge/` в одном процессе) поднимает `oc up` в фоне. Агенты подключаются к нему по URL, их можно
+перезапускать и запускать несколько сразу: робот связь не теряет. Всё остальное делает CLI `oc` (`demo/cli.py`). Он работает из любого каталога и на любой ОС:
 
 | Команда | Что делает |
 |---|---|
 | `uv run oc setup` | Один раз: Forge, моды, конфиги сервера и OpenComputers, шаблон мира, карта для Navigation Upgrade |
-| `uv run oc up [--reset]` | Запускает сервер Minecraft и раздачу Lua роботу (порт 8770, в фоне), собирает `demo/workspace`. С `--reset` заново ставит площадку и склад |
-| `uv run oc down` | Останавливает сервер и раздачу Lua |
+| `uv run oc up [--reset]` | Запускает сервер Minecraft и хаб робота (порт 8765, в фоне: мост, MCP `/mcp`, раздача Lua `/get.lua`), собирает `demo/workspace`. С `--reset` заново ставит площадку и склад |
+| `uv run oc down` | Останавливает сервер и хаб |
 | `uv run oc status` | Показывает, что запущено и что настроено |
 | `uv run oc give <ник>` | Выдаёт игроку онлайн op и предметы для Navigation Upgrade |
 | `uv run oc client-mods [--dest DIR] [--move-foreign]` | Копирует моды сервера в клиент |
@@ -84,7 +84,7 @@ uv run oc agent claude      # или: uv run oc agent codex, uv run oc agent ope
 > Build a 3x3 wall of cobblestone. Its lower-left block is at (100, 64, 100), it extends along +X and up (+Y), z stays 100. Materials are in the warehouse chest.
 
 Смотрите на стройку в клиенте, стоя вне площадки. Журнал задачи пишется в `demo/workspace/.oc-tasks/`, каждый вызов
-робота в `demo/logs/action_log.jsonl`, лог моста в `demo/logs/bridge.log`, лог раздачи Lua в `demo/logs/lua_server.log`.
+робота в `demo/logs/action_log.jsonl`, лог моста в `demo/logs/bridge.log`, лог хаба в `demo/logs/hub.log`.
 
 ### Память между задачами
 
@@ -106,8 +106,8 @@ uv run oc agent claude      # или: uv run oc agent codex, uv run oc agent ope
 |---|---|
 | `CONNECTION_LOST` с текстом `OpenComputers did not respond within ...` | На роботе не запущен `oc_mcp`. Откройте `/home/oc_mcp.log` на роботе (`edit /home/oc_mcp.log`): `poll failed` значит, что робот не достучался до моста |
 | `get_status` без координат или координаты не совпадают с F3 | Navigation Upgrade скрафчен не с картой из `oc give` |
-| У агента нет tools `robot` | Адаптер упал при старте. В Claude Code ошибку покажет `/mcp`, в Codex `codex mcp list`. Лог моста в `demo/logs/bridge.log`. Сервер Minecraft для старта адаптера не нужен |
+| У агента нет tools `robot` | Хаб не запущен или упал: `uv run oc status`, лог `demo/logs/hub.log`. В Claude Code ошибку покажет `/mcp`, в Codex `codex mcp list`. Сервер Minecraft для старта хаба не нужен |
 | `move_to`, `place_at`, `verify_blocks` отвечают `stand server is not reachable over RCON` | Карта-оракул обращается к серверу стенда по RCON: выполните `uv run oc up`. Агента перезапускать не нужно |
-| `Address already in use` в логе моста | Уже запущен другой агент с этим MCP-сервером: мост на порту 8765 может быть только один |
+| `Address already in use` в `demo/logs/hub.log` | Порт 8765 занят другим процессом, например голым мостом `bridge/server.py` из конфига другого MCP-клиента. Остановите его |
 | Клиент падает при входе: `IndexOutOfBoundsException` в `RenderGlobal` | `options.txt` клиента достался от новой версии игры: при `renderDistance` больше 16 Minecraft 1.7.10 падает. Поставьте 12 или меньше |
 | Клиент не пускает на сервер (mod mismatch) или падает | В папке модов клиента лежат чужие jar (например, Fabric 1.21): `uv run oc client-mods --move-foreign` |

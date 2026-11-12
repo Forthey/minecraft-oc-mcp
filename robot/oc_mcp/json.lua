@@ -7,18 +7,29 @@ function json.encodeString(value)
   return '"' .. value .. '"'
 end
 
+local encodeValue
+
+function json.encodeArray(array)
+  local parts = {}
+  for _, value in ipairs(array) do table.insert(parts, encodeValue(value)) end
+  return "[" .. table.concat(parts, ",") .. "]"
+end
+
 function json.encodeObject(object)
   local parts = {}
   for key, value in pairs(object) do
-    local encoded
-    if type(value) == "string" then
-      encoded = json.encodeString(value)
-    else
-      encoded = tostring(value)
-    end
-    table.insert(parts, json.encodeString(key) .. ":" .. encoded)
+    table.insert(parts, json.encodeString(key) .. ":" .. encodeValue(value))
   end
   return "{" .. table.concat(parts, ",") .. "}"
+end
+
+encodeValue = function(value)
+  if type(value) == "string" then return json.encodeString(value) end
+  if type(value) == "table" then
+    if value[1] ~= nil then return json.encodeArray(value) end
+    return json.encodeObject(value)
+  end
+  return tostring(value)
 end
 
 local function skipSpaces(text, position)

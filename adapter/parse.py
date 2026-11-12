@@ -1,8 +1,7 @@
 """Разбор текстовых ответов oc-mcp в структуры для data конверта.
 
 Форматы взяты из Lua oc-mcp: format.items для слотов, storage_scan для хранилищ,
-move для неполного хода. oc-mcp печатает имя стека без damage, поэтому damage
-считается 0, если его нет в тексте (TODO в docs/real-mcp-notes.md).
+move для неполного хода. Имя стека oc-mcp печатает как mod:name:damage.
 """
 
 from __future__ import annotations

@@ -34,11 +34,14 @@ function Registry:run(command, robot)
   local name = command.type
   local tool = self.tools[name]
   if not tool then
-    if self.disabled[name] then return false, "tool " .. name .. " is disabled: " .. self.disabled[name] end
-    return false, "unknown command type: " .. tostring(name)
+    if self.disabled[name] then
+      return false, "tool " .. name .. " is disabled: " .. self.disabled[name], "UNSUPPORTED"
+    end
+    return false, "unknown command type: " .. tostring(name), "UNSUPPORTED"
   end
-  local callOk, ok, text = pcall(tool.run, robot, command)
-  if not callOk then return false, tostring(ok) end
+  local callOk, ok, text, code = pcall(tool.run, robot, command)
+  if not callOk then return false, tostring(ok), "UNKNOWN" end
+  if not ok then return false, text, code or "UNKNOWN" end
   return ok, text
 end
 

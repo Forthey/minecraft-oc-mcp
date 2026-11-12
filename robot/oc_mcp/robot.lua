@@ -69,7 +69,8 @@ function Robot:withSelected(slot, action)
 end
 
 local function describe(slot, count, stack)
-  return {slot = slot, count = count, name = stack and stack.name, label = stack and stack.label}
+  local name = stack and stack.name and (stack.name .. ":" .. math.floor(stack.damage or 0))
+  return {slot = slot, count = count, name = name, label = stack and stack.label}
 end
 
 function Robot:inventory()
@@ -85,13 +86,13 @@ function Robot:inventory()
 end
 
 function Robot:transfer(fromSlot, toSlot, count)
-  if self.api.count(fromSlot) == 0 then return false, "slot " .. fromSlot .. " is empty" end
+  if self.api.count(fromSlot) == 0 then return false, "slot " .. fromSlot .. " is empty", "NO_ITEM" end
   return self:withSelected(fromSlot, function()
     if self.api.count(toSlot) > 0 and not self.api.compareTo(toSlot) then
-      return false, "slot " .. toSlot .. " holds a different item"
+      return false, "slot " .. toSlot .. " holds a different item", "BLOCKED"
     end
     if not self.api.transferTo(toSlot, count) then
-      return false, "slot " .. toSlot .. " is full"
+      return false, "slot " .. toSlot .. " is full", "INVENTORY_FULL"
     end
     return true
   end)
@@ -216,7 +217,7 @@ function Robot:craftGrid()
     local count = self.api.count(slot)
     if count > 0 then
       local stack = controller and controller.getStackInInternalSlot(slot)
-      grid[position] = {slot = slot, count = count, name = stack and stack.name}
+      grid[position] = {slot = slot, count = count, name = stack and (stack.name .. ":" .. math.floor(stack.damage or 0))}
     end
   end
   return grid

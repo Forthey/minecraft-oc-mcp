@@ -137,7 +137,8 @@ def test_contract_has_all_tools():
         "get_status", "world_info", "surroundings", "geo_scan", "move_to", "face", "move", "turn",
         "place_at", "place", "swing", "use", "inventory_scan", "inventory_transfer", "storage_scan",
         "storage_take", "storage_put", "equip", "craft_recipe", "craft", "nei_find", "nei_recipes",
-        "nei_recipe", "nei_craft_tree", "nei_machine_plan", "search_docs", "verify_blocks", "get_action_log"}
+        "nei_recipe", "nei_craft_tree", "nei_machine_plan", "search_docs", "verify_blocks", "get_action_log",
+        "scan_area"}
 
 
 def test_contract_error_codes():

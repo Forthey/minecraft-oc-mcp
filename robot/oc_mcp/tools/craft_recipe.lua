@@ -18,13 +18,13 @@ end
 
 local function gridCells(recipe)
   if recipe.overlay ~= "crafting" then
-    return nil, "not a crafting-table recipe (category " .. tostring(recipe.name) .. "); use nei_machine_plan for machines"
+    return nil, "not a crafting-table recipe (category " .. tostring(recipe.name) .. "); use nei_machine_plan for machines", "NO_RECIPE"
   end
   local cells = {}
   for _, position in ipairs(recipe.ingredients or {}) do
     local first = position.items and position.items[1]
     if first then
-      if not position.slot then return nil, "NEI did not report grid cells for this recipe" end
+      if not position.slot then return nil, "NEI did not report grid cells for this recipe", "NO_RECIPE" end
       table.insert(cells, {
         slot = Robot.CRAFT_GRID[position.slot],
         choices = position.items,
@@ -33,7 +33,7 @@ local function gridCells(recipe)
       })
     end
   end
-  if #cells == 0 then return nil, "recipe has no ingredients" end
+  if #cells == 0 then return nil, "recipe has no ingredients", "NO_RECIPE" end
   return cells
 end
 
@@ -49,7 +49,7 @@ local function clearGrid(robot)
       end
     end
     if robot.api.count(gridSlot) > 0 then
-      return false, "no room outside the crafting grid for the items in slot " .. gridSlot
+      return false, "no room outside the crafting grid for the items in slot " .. gridSlot, "INVENTORY_FULL"
     end
   end
   return true
@@ -107,18 +107,18 @@ return {
     return nei.available(robot)
   end,
   run = function(robot, args)
-    local recipe, recipeError = nei.rawRecipe(args.recipe)
-    if not recipe then return false, recipeError end
-    local cells, cellsError = gridCells(recipe)
-    if not cells then return false, cellsError end
+    local recipe, recipeError, recipeCode = nei.rawRecipe(args.recipe)
+    if not recipe then return false, recipeError, recipeCode end
+    local cells, cellsError, cellsCode = gridCells(recipe)
+    if not cells then return false, cellsError, cellsCode end
     for _, cell in ipairs(cells) do
       if cell.perCraft * args.count > 64 then
-        return false, "count too large: slot " .. cell.slot .. " would need " .. cell.perCraft * args.count .. " items, max 64"
+        return false, "count too large: slot " .. cell.slot .. " would need " .. cell.perCraft * args.count .. " items, max 64", "BLOCKED"
       end
     end
 
     local cleared, clearError = clearGrid(robot)
-    if not cleared then return false, clearError end
+    if not cleared then return false, clearError, "INVENTORY_FULL" end
 
     local controller = robot:component("inventory_controller")
     local missing = {}
@@ -128,13 +128,13 @@ return {
     end
     if #missing > 0 then
       return false, "not enough ingredients in the robot inventory, missing: " .. table.concat(missing, ", ")
-        .. ". The grid is partly laid out; get the items and call craft_recipe again."
+        .. ". The grid is partly laid out; get the items and call craft_recipe again.", "NO_ITEM"
     end
 
     local resultSlot = freeSlot(robot)
-    if not resultSlot then return false, "no free slot outside the crafting grid for the result" end
+    if not resultSlot then return false, "no free slot outside the crafting grid for the result", "INVENTORY_FULL" end
     if not robot:craft(args.count, resultSlot) then
-      return false, "the crafting upgrade refused the recipe (NBT-specific ingredients are not supported)"
+      return false, "the crafting upgrade refused the recipe (NBT-specific ingredients are not supported)", "NO_RECIPE"
     end
     local result = controller.getStackInInternalSlot(resultSlot)
     if not result then return true, "Crafted " .. args.count .. " time(s)." end

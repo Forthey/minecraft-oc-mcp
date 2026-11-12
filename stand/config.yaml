@@ -26,6 +26,9 @@ robot_mcp: fake
 # {python}, {oc_mcp_dir}, {scenario} (очищенный сценарий прогона), {action_log} (журнал прогона).
 #   command: ["{python}", -m, adapter, --oc-mcp, "{oc_mcp_dir}/bridge/server.py", --world-id, stand,
 #             --map, "stand.adapter_map:oracle", --map-arg, "scenario={scenario}", --log, "{action_log}"]
+# Или долгоживущий хаб (python -m adapter serve --world-id stand --map stand.adapter_map:oracle ...):
+#   url: http://127.0.0.1:8765/mcp
+# Журнал действий тогда пишет хаб в свой --log, а не в папку прогона.
 real:
   command: null       # список, команда запуска stdio MCP-сервера
   url: null           # или URL streamable HTTP MCP-сервера

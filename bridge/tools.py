@@ -154,7 +154,8 @@ class GeoScan(Tool):
                    "(not block names). Offsets are relative to the robot. With a navigation upgrade "
                    "the axes follow the robot: x = right, z = forward; without it they are world axes: "
                    "x = east, z = south. y = up. The first line of the answer states which axes were used. "
-                   "width*depth*height must be <= 64. Values are noisy, more so farther away: "
+                   "width*depth*height must be <= 64, e.g. 4x4x4; for larger areas call scan_area if available. "
+                   "Values are noisy, more so farther away: "
                    ". = air, ~0.5 dirt/sand/gravel, ~1.5 stone, ~2-3 ores, ~50 obsidian, "
                    "100 liquid, -1 bedrock. Use surroundings to identify adjacent blocks exactly.")
 

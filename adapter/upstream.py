@@ -1,8 +1,7 @@
 """Связь с oc-mcp: дочерний процесс bridge/server.py и MCP-сессия по stdio.
 
 Адаптер единственный клиент моста: мост держит HTTP-порт для робота в одном
-экземпляре, поэтому второй процесс с ним работать не может. Ответы oc-mcp это текст,
-ошибки приходят как JSON-RPC error. Здесь оба случая сводятся к паре (ok, text).
+экземпляре, поэтому второй процесс с ним работать не может.
 """
 
 from __future__ import annotations
@@ -48,14 +47,16 @@ class Upstream:
     async def __aexit__(self, *exc) -> None:
         await self._stack.aclose()
 
-    async def call(self, name: str, args: dict) -> tuple[bool, str]:
-        """Вызывает tool oc-mcp. Возвращает (ok, text), ошибка аргументов даёт "bad argument: ..."."""
+    async def call(self, name: str, args: dict) -> tuple[bool, str, str | None]:
         try:
             result = await self.session.call_tool(name, args)
         except MCPError as e:
-            return False, (f"bad argument: {e.message}" if e.code == INVALID_PARAMS else e.message)
+            if e.code == INVALID_PARAMS:
+                return False, f"bad argument: {e.message}", "BLOCKED"
+            return False, e.message, None
         text = "\n".join(c.text for c in result.content if getattr(c, "type", "") == "text")
-        return not result.is_error, text
+        code = (result.structured_content or {}).get("error_code") if result.is_error else None
+        return not result.is_error, text, code
 
     async def list_tools(self) -> list[dict]:
         """Tools oc-mcp: name, description, inputSchema."""

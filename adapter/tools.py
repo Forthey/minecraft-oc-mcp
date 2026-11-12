@@ -13,6 +13,10 @@ TEXT = {"type": "string"}
 INT = {"type": "integer"}
 POS = {"type": "array", "items": {"type": "integer"}, "minItems": 3, "maxItems": 3}
 LIMIT = {"type": "integer", "minimum": 1, "maximum": 50}
+SCAN_AREA_DESCRIPTION = ("Scan a world-coordinate box (corners x1,y1,z1 and x2,y2,z2, inclusive, at most 4096 cells) "
+                         "with the geolyzer in <=64-block chunks. Returns data.solid as [x, y, z, hardness] of "
+                         "non-air cells (hardness only, no names) and data.skipped for chunks farther than 32 "
+                         "blocks from the robot. Use surroundings for exact names of adjacent blocks.")
 
 
 def _obj(required: list[str], **props) -> dict:
@@ -37,6 +41,8 @@ ADDITION_SPECS: dict[str, dict] = {
                            _obj(["expected"], expected={"type": "array", "items": {
                                "type": "object", "required": ["pos", "item"], "properties": {"pos": POS, "item": ITEM}}},
                                page=INT)),
+    "scan_area": _spec(SCAN_AREA_DESCRIPTION,
+                       _obj(["x1", "y1", "z1", "x2", "y2", "z2"], x1=INT, y1=INT, z1=INT, x2=INT, y2=INT, z2=INT)),
     "get_action_log": _spec("Last last_n robot actions with results.",
                             _obj([], last_n={"type": "integer", "minimum": 1})),
 }

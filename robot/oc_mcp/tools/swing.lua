@@ -15,11 +15,11 @@ return {
       end
       return true, "Hit " .. tostring(what) .. " (" .. args.side .. "). " .. toolText(robot) .. "."
     end
-    if what == "air" then return false, "nothing to hit on " .. args.side .. " (air)" end
+    if what == "air" then return false, "nothing to hit on " .. args.side .. " (air)", "BLOCKED" end
     if what == "block" then
       return false, "cannot break " .. target .. " (" .. args.side .. ") with the equipped tool ("
-        .. toolText(robot) .. "). Equip a suitable tool (e.g. a pickaxe for stone/furnaces) with equip."
+        .. toolText(robot) .. "). Equip a suitable tool (e.g. a pickaxe for stone/furnaces) with equip.", "TOOL_BROKEN"
     end
-    return false, "swing " .. args.side .. " failed: " .. tostring(what)
+    return false, "swing " .. args.side .. " failed: " .. tostring(what), "UNKNOWN"
   end,
 }
