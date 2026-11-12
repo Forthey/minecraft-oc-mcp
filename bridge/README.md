@@ -35,6 +35,7 @@ filteringRules=[
 
 Нужны: Internet Card, Inventory Controller, Crafting Upgrade, Geolyzer, апгрейд инвентаря
 (крафт требует ≥12 слотов). Желательно Navigation Upgrade — без него нет координат и направления.
+Пошаговая сборка, раскладка по слотам и какой tool без какой детали не работает: [docs/robot-build.md](../docs/robot-build.md).
 
 ### 4. Скопировать скрипты на робота
 
