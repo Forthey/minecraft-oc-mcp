@@ -1,10 +1,4 @@
-from adapter.pathfinding import NEIGHBOURS, astar
-
-
-def test_stand_reexports_adapter_astar():
-    import stand.fake_mcp.pathfinding as stand_pf
-
-    assert stand_pf.astar is astar and stand_pf.NEIGHBOURS is NEIGHBOURS
+from adapter.pathfinding import astar
 
 
 def test_straight_line():

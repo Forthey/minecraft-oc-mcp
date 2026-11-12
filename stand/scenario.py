@@ -1,7 +1,6 @@
 """Сценарии стенда: загрузка, проверка схемы и смысловая проверка.
 
-Формат описан в docs/superpowers/specs/2026-11-10-e2e-stand-design.md, схема лежит
-в stand/scenario-schema.json.
+Схема формата лежит в stand/scenario-schema.json, примеры в stand/scenarios/.
 """
 
 from __future__ import annotations

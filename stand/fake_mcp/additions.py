@@ -11,7 +11,7 @@ from __future__ import annotations
 from stand.fake_mcp.envelope import err, ok
 from stand.fake_mcp.geometry import DIRS, FACINGS, add, sub
 from stand.fake_mcp.nei import nei_id
-from stand.fake_mcp.pathfinding import NEIGHBOURS
+from adapter.pathfinding import NEIGHBOURS
 from stand.knowledge import normalize_id
 from stand.world.blocks import AIR, parse_block
 

@@ -1,4 +1,4 @@
-from stand.fake_mcp.pathfinding import astar
+from adapter.pathfinding import astar
 
 
 def _free_except(blocked, bounds=10):

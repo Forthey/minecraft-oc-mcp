@@ -2,7 +2,7 @@
 
 Стенд проверяет агента со скиллами из `agent/skills/` от начала до конца: агент получает цель, через MCP управляет роботом, в мире Minecraft появляется постройка, судья сверяет её с ожиданием и считает метрики.
 
-Дизайн: `docs/superpowers/specs/2026-11-10-e2e-stand-design.md` (в git не попадал). Сценарии и что из них показывать на демо: [docs/stand-scenarios.md](../docs/stand-scenarios.md).
+Сценарии и что из них показывать на демо: [docs/stand-scenarios.md](../docs/stand-scenarios.md).
 
 ## Как устроено
 

@@ -26,7 +26,7 @@ from stand.fake_mcp.envelope import err, ok
 from stand.fake_mcp.geometry import DIRS, FACINGS, add as _add, scale as _scale
 from stand.fake_mcp.inventory import Container, Inventory
 from stand.fake_mcp.nei import CRAFT_GRID, FakeNei, NeiError, nei_id
-from stand.fake_mcp.pathfinding import astar
+from adapter.pathfinding import astar
 from stand.knowledge import Knowledge, normalize_id
 from stand.scenario import Scenario
 from stand.world.backend import WorldBackend

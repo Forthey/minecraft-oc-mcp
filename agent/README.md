@@ -2,8 +2,6 @@
 
 Набор markdown-скиллов, которые учат локального агента (Claude Code, opencode, Codex с любой моделью) управлять роботом OpenComputers в Minecraft 1.7.10 через MCP. Агент получает высокоуровневую цель вроде "построй ядерный реактор IC2", сам исследует, как это устроено, пишет план постройки и выполняет его через субагентов с проверками на каждом этапе.
 
-Дизайн: `docs/superpowers/specs/2026-11-10-oc-agent-skills-design.md` (в git не попадал)
-
 MCP-контракт робота для команды: [docs/mcp-contract.md](../docs/mcp-contract.md). Он синхронизирован с `agent/skills/references/tool-contract.md`, менять оба файла вместе.
 
 Сценарии e2e-стенда и что из них показывать на демо: [docs/stand-scenarios.md](../docs/stand-scenarios.md).

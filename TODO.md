@@ -34,7 +34,8 @@
   и стройка по разведанной карте. Или отказаться от него в пользу точек маршрута из memory.
 - Технически: Java 17 и Maven, зависимости через jitpack, а сервер стенда работает на Java 8. Нужен способ вызова
   (отдельный процесс или порт на Python) и ответ в виде пути по клеткам, а не команд.
-- Убрать дубли A\*: `adapter/pathfinding.py`, `stand/fake_mcp/pathfinding.py`, `pathfinding/prototype-py/`.
+- 3D A\* в Python один: `adapter/pathfinding.py`, fake-MCP стенда импортирует его. `pathfinding/prototype-py/` это
+  прототип того же планировщика по карте высот, что и Java-версия. Когда решим судьбу Java-версии, прототип удалить.
 
 ## Слить адаптер с MCP (`adapter/` и `bridge/`)
 
@@ -75,6 +76,5 @@ memory хранит редкие подписанные точки (POI: `chest`
   EEPROM (Lua BIOS) и дискета OpenOS в творческой вкладке, появляется ли слот дискеты в окне робота.
 - Проверить демо на opencode: `uv run oc agent opencode` и `opencode.json` в `demo/workspace` повторяют формат стенда,
   проверенный на opencode 2.1.0, но в демо с настоящим роботом opencode ещё не запускался.
-- README ссылаются на спеки `docs/superpowers/specs/`, которых нет в git.
 - Четыре мода без `url` в `stand/server/mods.yaml`: их jar кладутся руками. Пока оставлено так.
 - Мост: лог-файл открывается на каждый HTTP-запрос и пишется без явной кодировки.

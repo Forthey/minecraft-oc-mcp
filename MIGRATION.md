@@ -111,7 +111,8 @@ git log -- 'pathfinding/'                 # всё по pathfinding
 
 ## Известные проблемы, перенесённые как есть
 
-- Спеки `docs/superpowers/specs/*.md`, на которые ссылаются README и docs, ни в одном репозитории не были закоммичены.
+- Спеки `docs/superpowers/specs/*.md` ни в одном репозитории не были закоммичены и не сохранились. Ссылки на них убраны.
 - `adapter` подключает карту мира из `stand` (`--map stand.adapter_map:oracle`), то есть продовый путь зависит от стенда.
-- A\* реализован трижды: `adapter/pathfinding.py`, `stand/fake_mcp/pathfinding.py`, `pathfinding/java/`.
-  Java-версия ни к чему не подключена.
+- Поиск пути есть в двух видах: 3D A\* по клеткам в `adapter/pathfinding.py` (им же пользуется fake-MCP стенда)
+  и планировщик по карте высот в `pathfinding/java/` (прототип на Python в `pathfinding/prototype-py/`).
+  Java-версия ни к чему не подключена, см. [TODO.md](TODO.md).
