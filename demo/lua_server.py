@@ -1,6 +1,7 @@
 """Раздаёт Lua-скрипты oc-mcp роботу по HTTP, чтобы не копировать их в сейв руками.
 
-  python demo/serve_lua.py       (порт 8770)
+  uv run oc up                          (запускает раздачу в фоне вместе с сервером)
+  uv run python -m demo.lua_server [--port 8770]
 
 На роботе (OpenOS):
   wget -f http://127.0.0.1:8770/get.lua /home/get.lua
@@ -10,13 +11,19 @@
 
 from __future__ import annotations
 
+import argparse
 import http.server
 import sys
 from functools import partial
 from pathlib import Path
 
 LUA_DIR = Path(__file__).resolve().parent.parent / "robot"
-PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8770
+DEFAULT_PORT = 8770
+
+
+def robot_commands(port: int = DEFAULT_PORT) -> list[str]:
+    """Команды для шелла робота: скачать и запустить установщик."""
+    return [f"wget -f http://127.0.0.1:{port}/get.lua /home/get.lua", "/home/get.lua"]
 
 
 def installer(base: str) -> bytes:
@@ -57,7 +64,8 @@ if ok then print("run now: oc_mcp   (after reboot it starts by itself)") end
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.split("?")[0] == "/get.lua":
-            body = installer(f"http://{self.headers.get('Host', f'127.0.0.1:{PORT}')}")
+            host = self.headers.get("Host") or f"127.0.0.1:{self.server.server_address[1]}"
+            body = installer(f"http://{host}")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
             self.send_header("Content-Length", str(len(body)))
@@ -67,6 +75,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().do_GET()
 
 
+def serve(port: int = DEFAULT_PORT) -> None:
+    print(f"serving {LUA_DIR} on http://127.0.0.1:{port}  (robot: {'; '.join(robot_commands(port))})", flush=True)
+    http.server.ThreadingHTTPServer(("127.0.0.1", port), partial(Handler, directory=str(LUA_DIR))).serve_forever()
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="python -m demo.lua_server")
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    serve(parser.parse_args(argv).port)
+    return 0
+
+
 if __name__ == "__main__":
-    print(f"serving {LUA_DIR} on http://127.0.0.1:{PORT}  (robot: wget -f http://127.0.0.1:{PORT}/get.lua /home/get.lua)")
-    http.server.ThreadingHTTPServer(("127.0.0.1", PORT), partial(Handler, directory=str(LUA_DIR))).serve_forever()
+    sys.exit(main())

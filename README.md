@@ -26,7 +26,7 @@ MCP для управления роботом OpenComputers (Minecraft 1.7.10) 
 | `agent/` | Скиллы агента (`agent/skills/`), их валидатор и поведенческие сценарии | [agent/README.md](agent/README.md) |
 | `stand/` | E2E-стенд: сервер Minecraft, fake-MCP, сценарии, судья, runner, conformance | [stand/README.md](stand/README.md) |
 | `pathfinding/` | Pathfinder по сейву мира на Java и прототип на Python. Пока ни к чему не подключён | [pathfinding/java/README.md](pathfinding/java/README.md) |
-| `demo/` | Интерактивное демо: Claude Code управляет настоящим роботом на сервере стенда | [demo/README.md](demo/README.md) |
+| `demo/` | Интерактивное демо: Claude Code управляет настоящим роботом на сервере стенда. CLI `uv run oc` | [demo/README.md](demo/README.md) |
 | `docs/` | Общие документы: контракт MCP, заметки о реальном MCP, сценарии стенда | |
 
 ## Python

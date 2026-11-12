@@ -62,8 +62,8 @@
 
 | Было | Стало |
 |---|---|
-| `play/*.py`, `play/*.ps1`, `scenario.yaml`, `README.md` | `demo/` |
-| `play/workspace/` | не в git, генерируется: `uv run python demo/setup_workspace.py` |
+| `play/*.py`, `play/*.ps1`, `scenario.yaml`, `README.md` | `demo/`; скрипты `.ps1` заменены CLI `uv run oc` (`demo/cli.py`) |
+| `play/workspace/` | не в git, генерируется: `uv run oc workspace` (или `uv run oc up`) |
 | `play/logs/` | не в git, `demo/logs/` |
 
 ## Что изменилось, кроме путей
@@ -105,7 +105,7 @@ git log -- 'pathfinding/'                 # всё по pathfinding
      можно скопировать или пересоздать через `uv run python -m stand.server setup --pin`;
    - `stand/runs/` при желании.
 3. Если в старом `minecraft-oc-memory-mcp/` были `data/` (база памяти) или `local/`, перенесите их в `memory/data/` и `memory/local/`.
-4. Демо: `uv run python demo/setup_workspace.py`, затем `claude` в `demo/workspace`.
+4. Демо: `uv run oc up`, затем `claude` в `demo/workspace`.
 5. В конфигах MCP-клиентов поменяйте пути: `oc-mcp/bridge/server.py` → `bridge/server.py`,
    python из `minecraft-oc-mcp-client/.venv` → корневой `.venv`.
 

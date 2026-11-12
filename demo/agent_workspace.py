@@ -1,6 +1,6 @@
 """Собирает demo/workspace: папку, из которой запускается Claude Code с haiku.
 
-  uv run python demo/setup_workspace.py      (из корня репозитория)
+  uv run oc workspace        (его же вызывает uv run oc up)
 
 Повторный запуск безопасен: скиллы копируются заново (подтянуть правки из репозитория),
 журналы агента (.oc-tasks, .oc-knowledge) не трогаются.
@@ -21,6 +21,8 @@ WS = PLAY / "workspace"
 SCENARIO = PLAY / "scenario.yaml"
 PYTHON = ROOT / ".venv" / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
 
+LOGS = PLAY / "logs"
+
 from stand.config import load_config  # noqa: E402
 from stand.server.setup import mod_versions  # noqa: E402
 
@@ -37,7 +39,8 @@ CLAUDE_MD = """\
 """
 
 
-def main() -> int:
+def build() -> Path:
+    """Собирает или обновляет demo/workspace. Возвращает путь к нему."""
     cfg = load_config()
     scenario = yaml.safe_load(SCENARIO.read_text(encoding="utf-8"))
     versions = mod_versions(cfg.mods_manifest)
@@ -65,12 +68,12 @@ def main() -> int:
         "args": ["-m", "adapter",
                  "--oc-mcp", str(ROOT / "bridge" / "server.py"),
                  "--world-id", "stand",
-                 "--bridge-log", str(PLAY / "logs" / "bridge.log"),
+                 "--bridge-log", str(LOGS / "bridge.log"),
                  "--map", "stand.adapter_map:oracle",
                  "--map-arg", f"scenario={SCENARIO}",
-                 "--log", str(PLAY / "logs" / "action_log.jsonl")],
+                 "--log", str(LOGS / "action_log.jsonl")],
     }
-    (PLAY / "logs").mkdir(exist_ok=True)
+    LOGS.mkdir(exist_ok=True)
     (WS / ".mcp.json").write_text(json.dumps({"mcpServers": {"robot": robot}}, indent=2), encoding="utf-8")
 
     settings = {
@@ -84,7 +87,11 @@ def main() -> int:
     local = {"enabledMcpjsonServers": ["robot"]}
     (WS / ".claude" / "settings.local.json").write_text(json.dumps(local, indent=2), encoding="utf-8")
     (WS / "CLAUDE.md").write_text(CLAUDE_MD, encoding="utf-8")
-    print(f"workspace ready: {WS}")
+    return WS
+
+
+def main() -> int:
+    print(f"workspace ready: {build()}")
     return 0
 
 
