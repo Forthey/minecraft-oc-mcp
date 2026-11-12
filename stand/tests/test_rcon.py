@@ -73,3 +73,16 @@ def test_no_server_times_out():
     with pytest.raises(RconError):
         Rcon("127.0.0.1", port, "pw", timeout=1.0).connect()
     assert time.monotonic() - start < 2.0
+
+
+def test_reconnecting_rcon_connects_lazily_and_retries():
+    from stand.rcon import ReconnectingRcon
+
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    r = ReconnectingRcon("127.0.0.1", port, "pw", timeout=1)
+    with pytest.raises(RconError):
+        r.command("list")
+    with pytest.raises(RconError):
+        r.command("list")

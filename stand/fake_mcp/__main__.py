@@ -25,21 +25,9 @@ from stand.fake_mcp.action_log import ActionLog
 from stand.fake_mcp.dispatch import TOOL_SPECS, Dispatcher
 from stand.fake_mcp.sim import RobotSim
 from stand.knowledge import KNOWLEDGE_DIR, Knowledge
-from stand.rcon import Rcon, RconError
+from stand.rcon import ReconnectingRcon
 from stand.scenario import load_scenario
 from stand.world.backend import MemoryWorld, RconWorld
-
-class _ReconnectingRcon(Rcon):
-    """RCON, который один раз переподключается при обрыве (сервер мог перезапуститься)."""
-
-    def command(self, cmd: str) -> str:
-        try:
-            return super().command(cmd)
-        except RconError:
-            self.close()
-            self.connect()
-            return super().command(cmd)
-
 
 def build_dispatcher(scenario_path: Path, log_path: Path | None, profile: str | None, world: str) -> Dispatcher:
     """Собирает диспетчер по сценарию. Отдельно от main, чтобы тесты могли его вызвать."""
@@ -49,7 +37,7 @@ def build_dispatcher(scenario_path: Path, log_path: Path | None, profile: str | 
         backend = MemoryWorld(s.scene_blocks())
     else:
         cfg = load_config()
-        rcon = _ReconnectingRcon(cfg.rcon_host, cfg.rcon_port, cfg.rcon_password, timeout=10)
+        rcon = ReconnectingRcon(cfg.rcon_host, cfg.rcon_port, cfg.rcon_password, timeout=10)
         rcon.connect()
         backend = RconWorld(rcon)
     sim = RobotSim(s, k, backend)

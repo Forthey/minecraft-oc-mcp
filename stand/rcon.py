@@ -103,3 +103,20 @@ class Rcon:
         body = self._recv_exact(length)
         resp_id, ptype = struct.unpack("<ii", body[:8])
         return resp_id, ptype, body[8:-2].decode("utf-8", errors="replace")
+
+
+class ReconnectingRcon(Rcon):
+    """RCON для долгоживущих процессов: подключается при первой команде и один раз
+    переподключается при обрыве (сервер мог перезапуститься).
+
+    Бросает RconError, если сервер недоступен. Следующая команда снова пробует подключиться.
+    """
+
+    def command(self, cmd: str) -> str:
+        try:
+            return super().command(cmd)
+        except RconAuthError:
+            raise
+        except RconError:
+            self.close()
+            return super().command(cmd)

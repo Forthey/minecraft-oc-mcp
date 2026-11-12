@@ -5,6 +5,8 @@ MCP для управления роботом OpenComputers (Minecraft 1.7.10) 
 
 Монорепо собрано из четырёх репозиториев команды с сохранением истории.
 Что куда переехало: [MIGRATION.md](MIGRATION.md).
+С чего начать: [docs/GUIDE.md](docs/GUIDE.md), от поднятия стенда до сценария агентом.
+Что осталось доделать: [TODO.md](TODO.md).
 
 ```
 агент (Claude Code, opencode, Codex) + agent/skills

@@ -24,7 +24,7 @@ Claude Code (haiku) ──► адаптер (python -m adapter) ──► мо�
 
 1. `uv sync` в корне репозитория: `.venv` со всеми пакетами и командой `oc`.
 2. Java 8: путь к `java.exe` в `stand/config.local.yaml` (`java_path: ...`), подробно в [stand/README.md](../stand/README.md).
-3. `uv run oc setup --pin`. Получится Forge 1.7.10-10.13.4.1614 и моды в `stand/server/instance`. При остановленном
+3. `uv run oc setup` (`--pin` только при смене модов: вписывает новые sha256 в `mods.yaml`). Получится Forge 1.7.10-10.13.4.1614 и моды в `stand/server/instance`. При остановленном
    сервере `setup` ещё правит `config/OpenComputers.cfg` (`"allow ip:127.0.0.1"` перед `"deny private"`,
    `ignorePower=true`, `limitFlightHeight=256`) и пишет в мир карту масштаба 1 с центром (0, 0) для Navigation Upgrade.
    Повторный запуск безопасен. Четыре мода из сборки команды скачать нельзя, их jar кладутся в
@@ -72,7 +72,8 @@ claude            # модель haiku задана в .claude/settings.json; и
 |---|---|
 | `CONNECTION_LOST: robot does not respond` | На роботе не запущен `oc_mcp`. Смотрите `/home/oc_mcp.log` на роботе (`edit /home/oc_mcp.log`): `poll failed` значит сеть или `filteringRules` |
 | `get_status` без координат или они не совпадают с F3 | Navigation Upgrade скрафчен не с картой из `oc give` |
-| В Claude Code нет tools `robot` | Сервер Minecraft должен работать до запуска `claude`: карта-оракул подключается к RCON. Проверка: `uv run oc status`, затем `/mcp` в Claude Code |
+| В Claude Code нет tools `robot` | Адаптер упал при старте: `/mcp` в Claude Code покажет ошибку, лог моста в `demo/logs/bridge.log`. Сервер Minecraft для старта не нужен |
+| `move_to`, `place_at`, `verify_blocks`: `stand server is not reachable over RCON` | Карта-оракул ходит на сервер стенда по RCON: `uv run oc up`. Перезапускать `claude` не нужно |
 | `Address already in use` в логе моста | Уже запущен другой `claude` с этим MCP: мост на 8765 может быть только один |
 | Клиент падает при входе: `IndexOutOfBoundsException` в `RenderGlobal` | `options.txt` общий с 1.21: `renderDistance` больше 16 роняет 1.7.10. Поставлено 12, копия с 32 лежит в `options.txt.bak-1.21` |
 | Клиент не пускает на сервер (mod mismatch) или падает | В папке модов клиента лежат чужие jar (например, Fabric 1.21): `uv run oc client-mods --move-foreign` |

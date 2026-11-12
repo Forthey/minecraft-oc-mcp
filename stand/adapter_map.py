@@ -64,17 +64,37 @@ class SnapshotMap:
         return missing, wrong
 
 
+class _StandRcon:
+    """RCON карты-оракула с подсказкой, что делать, если сервер стенда не запущен."""
+
+    def __init__(self, rcon):
+        self.rcon = rcon
+
+    def command(self, cmd: str) -> str:
+        from stand.rcon import RconError
+
+        try:
+            return self.rcon.command(cmd)
+        except RconError as e:
+            raise RconError(f"stand server is not reachable over RCON ({e}): start it with `uv run oc up`, "
+                            "move_to, place_at and verify_blocks need it") from e
+
+
 def oracle(scenario: str) -> SnapshotMap:
-    """Карта по региону сценария на сервере стенда: снимок region-файлов и testforblock через RCON."""
+    """Карта по региону сценария на сервере стенда: снимок region-файлов и testforblock через RCON.
+
+    RCON подключается при первом обращении карты, а не при запуске адаптера: агент стартует и без
+    сервера, tools без карты работают сразу, а move_to, place_at и verify_blocks отвечают ошибкой,
+    пока сервер не поднят.
+    """
     from stand.config import load_config
-    from stand.fake_mcp.__main__ import _ReconnectingRcon
+    from stand.rcon import ReconnectingRcon
     from stand.scenario import load_scenario
     from stand.world.backend import RconWorld
     from stand.world.snapshot import capture
 
     cfg = load_config()
     s = load_scenario(Path(scenario))
-    rcon = _ReconnectingRcon(cfg.rcon_host, cfg.rcon_port, cfg.rcon_password, timeout=10)
-    rcon.connect()
+    rcon = _StandRcon(ReconnectingRcon(cfg.rcon_host, cfg.rcon_port, cfg.rcon_password, timeout=10))
     return SnapshotMap(s.region, Knowledge.load(KNOWLEDGE_DIR, s.knowledge),
                        lambda: capture(rcon, cfg.world_dir, s.region), RconWorld(rcon))
