@@ -156,3 +156,58 @@ def test_pid_alive_false_for_exited_child():
     import time
     time.sleep(1)
     assert process._pid_alive(proc.pid) is False
+
+
+# Фрагмент OpenComputers.cfg 1.8.10 в исходном виде.
+OC_CFG = """\
+  internet {
+    filteringRules=[
+      removeme,
+      "deny private",
+      "deny bogon",
+      "allow default"
+    ]
+  }
+  power {
+    ignorePower=false
+
+    # comment
+  }
+  robot {
+    limitFlightHeight=8
+  }
+"""
+
+
+def test_patch_oc_config():
+    out = setup.patch_oc_config(OC_CFG)
+    lines = [line.strip() for line in out.splitlines()]
+    assert lines.index('"allow ip:127.0.0.1",') == lines.index('"deny private",') - 1
+    assert "ignorePower=true" in lines and "limitFlightHeight=256" in lines
+    assert "\n    ignorePower=true\n\n    # comment\n" in out
+    assert setup.patch_oc_config(out) == out
+
+
+def test_configure_opencomputers(cfg):
+    assert setup.configure_opencomputers(cfg) is False
+    path = setup.oc_config_path(cfg)
+    path.parent.mkdir(parents=True)
+    path.write_text(OC_CFG, encoding="utf-8")
+    assert setup.configure_opencomputers(cfg) is True
+    assert "ignorePower=true" in path.read_text(encoding="utf-8")
+
+
+def test_ensure_nav_map(tmp_path):
+    from stand.server.navmap import ensure_nav_map, find_nav_map
+    from stand.world.nbt import TagShort, write_nbt
+
+    world, template = tmp_path / "world", tmp_path / "template"
+    (world / "data").mkdir(parents=True)
+    template.mkdir()
+    # В мире уже есть чужая карта 0: карта стенда получает id 1.
+    (world / "data" / "map_0.dat").write_bytes(write_nbt({"data": {"scale": 3, "xCenter": 500, "zCenter": 0}}))
+    (world / "data" / "idcounts.dat").write_bytes(write_nbt({"map": TagShort(0)}, "none"))
+    assert ensure_nav_map([world, template]) == 1
+    assert find_nav_map(world) == find_nav_map(template) == 1
+    assert ensure_nav_map([world, template]) == 1
+    assert sorted(p.name for p in (world / "data").glob("map_*.dat")) == ["map_0.dat", "map_1.dat"]

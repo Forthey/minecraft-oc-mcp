@@ -15,7 +15,7 @@ from stand.knowledge import Knowledge
 from stand.scenario import WAREHOUSE_BLOCK, Scenario
 from stand.server import process
 from stand.world.backend import WorldBackend
-from stand.world.blocks import Block, baseline_block, parse_block
+from stand.world.blocks import ROBOT_BLOCKS, Block, baseline_block, parse_block
 from stand.world.snapshot import Snapshot
 
 STACK = 64
@@ -28,6 +28,11 @@ def _is_container(b: Block, k: Knowledge) -> bool:
     return bool(item and k.container_slots(item))
 
 
+def _changed(snap: Snapshot) -> dict:
+    """Изменённые клетки без блоков робота: робот переживает сброс региона."""
+    return {p: b for p, b in snap.changed().items() if b[0] not in ROBOT_BLOCKS}
+
+
 def reset_region(
     world: WorldBackend,
     snapshot: Callable[[], Snapshot],
@@ -38,14 +43,15 @@ def reset_region(
 
     Клетки обходятся сверху вниз, чтобы ничего не осыпалось. Контейнеры перед
     удалением очищаются пустым тегом Items, иначе содержимое высыпается на землю.
+    Блоки робота (ROBOT_BLOCKS) остаются на месте и чистоте не мешают.
     """
-    changed = snapshot().changed()
+    changed = _changed(snapshot())
     for p in sorted(changed, key=lambda q: (-q[1], q[0], q[2])):
         b = changed[p]
         if _is_container(b, k):
             world.set_block_nbt(p, (b[0], 0), EMPTY_ITEMS)
         world.set_block(p, baseline_block(p[1]))
-    return not snapshot().changed()
+    return not _changed(snapshot())
 
 
 def warehouse_nbt(items: dict[str, int], item_ids: dict[str, int]) -> str:

@@ -38,7 +38,7 @@ uv sync                                   # из корня репозитори
 uv run python -m stand.server setup --pin
 ```
 
-`setup` проверяет Java, ставит Forge, скачивает моды по `stand/server/mods.yaml` (IC2, OpenComputers, NEI с зависимостями), пишет конфиги и создаёт шаблон мира. Повторный запуск безопасен. Если мод не скачивается, положите jar в `stand/server/mods-cache/` руками.
+`setup` проверяет Java, ставит Forge, скачивает моды по `stand/server/mods.yaml` (IC2, OpenComputers, NEI с зависимостями), пишет конфиги, создаёт шаблон мира, затем правит `OpenComputers.cfg` (доступ к 127.0.0.1, `ignorePower`, `limitFlightHeight`) и пишет карту для Navigation Upgrade. Последние два шага требуют остановленного сервера. Повторный запуск безопасен. Если мод не скачивается, положите jar в `stand/server/mods-cache/` руками.
 
 Команды `python -m stand...` ниже запускаются из корня репозитория через `uv run` или из активированного `.venv`.
 

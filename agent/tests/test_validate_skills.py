@@ -145,7 +145,7 @@ def test_contract_error_codes():
 
 
 def test_example_config_keys():
-    cfg = yaml.safe_load((ROOT / "skills/references/examples/oc-harness.yaml").read_text())
+    cfg = yaml.safe_load((ROOT / "skills/references/examples/oc-harness.yaml").read_text(encoding="utf-8"))
     assert set(cfg) == {"versions", "warehouse", "autonomy", "budgets", "safety", "research"}
     assert cfg["budgets"] == {"step_attempts": 3, "stage_redelegations": 2, "design_revisions": 1,
                               "research_sources": 6, "robot_calls_per_stage": 150}
@@ -160,12 +160,12 @@ ERRORS_MD = ROOT / "skills/references/error-handling.md"
 
 
 def test_error_table_covers_all_codes():
-    table = section(ERRORS_MD.read_text(), "## Error table")
+    table = section(ERRORS_MD.read_text(encoding="utf-8"), "## Error table")
     assert {c for c in ALL_ERROR_CODES if f"`{c}`" in table} == ALL_ERROR_CODES
 
 
 def test_error_handling_sections():
-    text = ERRORS_MD.read_text()
+    text = ERRORS_MD.read_text(encoding="utf-8")
     for h in ("## Error table", "## Anti-loop rules", "## Escalation ladder"):
         assert h in text
 
@@ -174,7 +174,7 @@ def test_error_handling_sections():
 
 
 def test_orchestrator_sections():
-    text = (ROOT / "skills/oc-orchestrator/SKILL.md").read_text()
+    text = (ROOT / "skills/oc-orchestrator/SKILL.md").read_text(encoding="utf-8")
     for h in ("## Phases", "## Task workspace", "## Journal", "## Delegation template",
               "## Budgets and escalation", "## When to ask the user", "## Resume",
               "## Fallback without subagents"):
@@ -186,7 +186,7 @@ def test_orchestrator_sections():
 
 
 def test_research_note_template():
-    text = (ROOT / "skills/oc-research/SKILL.md").read_text()
+    text = (ROOT / "skills/oc-research/SKILL.md").read_text(encoding="utf-8")
     note = fenced(text, "research-note")
     for h in ("## Facts", "## Conflicts", "## Sources"):
         assert h in note
@@ -198,11 +198,11 @@ def test_research_note_template():
 
 
 def load_schema():
-    return json.loads((ROOT / "skills/references/spec-schema.json").read_text())
+    return json.loads((ROOT / "skills/references/spec-schema.json").read_text(encoding="utf-8"))
 
 
 def load_example():
-    return json.loads((ROOT / "skills/references/examples/spec.example.json").read_text())
+    return json.loads((ROOT / "skills/references/examples/spec.example.json").read_text(encoding="utf-8"))
 
 
 def test_example_spec_valid():
@@ -210,7 +210,7 @@ def test_example_spec_valid():
 
 
 def test_skill_inline_spec_valid():
-    text = (ROOT / "skills/oc-design/SKILL.md").read_text()
+    text = (ROOT / "skills/oc-design/SKILL.md").read_text(encoding="utf-8")
     jsonschema.validate(json.loads(fenced(text, "json")), load_schema())
 
 
@@ -229,7 +229,7 @@ def test_dangerous_gate_needs_emergency_off():
 
 
 def test_safe_spec_may_skip_emergency_off():
-    text = (ROOT / "skills/oc-design/SKILL.md").read_text()
+    text = (ROOT / "skills/oc-design/SKILL.md").read_text(encoding="utf-8")
     wall = json.loads(fenced(text, "json"))
     assert wall["emergency_off"] is None
     jsonschema.validate(wall, load_schema())
@@ -243,13 +243,13 @@ def test_safe_spec_may_skip_emergency_off():
     ("oc-build", ("## Inputs", "## Placement order", "## Error handling", "## Forbidden", "## Report")),
 ])
 def test_role_skill_sections(skill, headings):
-    text = (ROOT / f"skills/{skill}/SKILL.md").read_text()
+    text = (ROOT / f"skills/{skill}/SKILL.md").read_text(encoding="utf-8")
     for h in headings:
         assert h in text
 
 
 def test_build_forbids_supply():
-    text = section((ROOT / "skills/oc-build/SKILL.md").read_text(), "## Forbidden")
+    text = section((ROOT / "skills/oc-build/SKILL.md").read_text(encoding="utf-8"), "## Forbidden")
     assert "`craft_recipe(" in text and "`craft(" in text and "`storage_take(" in text
 
 
@@ -257,7 +257,7 @@ def test_build_forbids_supply():
 
 
 def test_verify_sections():
-    text = (ROOT / "skills/oc-verify/SKILL.md").read_text()
+    text = (ROOT / "skills/oc-verify/SKILL.md").read_text(encoding="utf-8")
     for h in ("## Structural check", "## Functional check", "## Allowed world changes",
               "## Emergency off", "## Report"):
         assert h in text
@@ -268,18 +268,18 @@ def test_verify_sections():
 
 
 def test_workflow_examples_present():
-    text = (ROOT / "skills/references/workflow-examples.md").read_text()
+    text = (ROOT / "skills/references/workflow-examples.md").read_text(encoding="utf-8")
     for h in ("## Example 1", "## Example 2", "## Example 3", "## Example 4"):
         assert h in text
 
 
 def test_orchestrator_links_examples():
-    assert "../references/workflow-examples.md" in (ROOT / "skills/oc-orchestrator/SKILL.md").read_text()
+    assert "../references/workflow-examples.md" in (ROOT / "skills/oc-orchestrator/SKILL.md").read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize("path", sorted((ROOT / "tests/scenarios").glob("0*.md")), ids=lambda p: p.name)
 def test_scenario_format(path):
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     for h in ("## Setup", "## Scripted tool responses", "## Expected behavior", "## Violations"):
         assert h in text
 
@@ -299,11 +299,11 @@ def test_empty_final_acceptance_invalid():
 
 
 def test_build_covers_partial_stage():
-    assert "## Partially built stage" in (ROOT / "skills/oc-build/SKILL.md").read_text()
+    assert "## Partially built stage" in (ROOT / "skills/oc-build/SKILL.md").read_text(encoding="utf-8")
 
 
 def test_only_orchestrator_writes_status_lines():
-    rules = section((ROOT / "skills/references/error-handling.md").read_text(), "## Anti-loop rules")
+    rules = section((ROOT / "skills/references/error-handling.md").read_text(encoding="utf-8"), "## Anti-loop rules")
     assert "Only the orchestrator writes status lines" in rules
 
 
@@ -313,7 +313,7 @@ from validate_skills import check_links_stay_inside
 
 
 def test_gated_check_needs_emergency_off():
-    text = (ROOT / "skills/oc-design/SKILL.md").read_text()
+    text = (ROOT / "skills/oc-design/SKILL.md").read_text(encoding="utf-8")
     spec = json.loads(fenced(text, "json"))
     spec["final_acceptance"][0]["gate"] = "insert_fuel"
     with pytest.raises(jsonschema.ValidationError):
@@ -336,24 +336,24 @@ def test_skill_links_stay_inside_skills(tmp_path):
 
 def test_no_journal_sections_left():
     for p in list((ROOT / "skills").rglob("*.md")) + list((ROOT / "tests/scenarios").glob("*.md")):
-        text = p.read_text()
+        text = p.read_text(encoding="utf-8")
         assert "## Tried" not in text and "## Decisions" not in text, p
 
 
 def test_no_path_first_reaction_is_safe():
-    row = next(l for l in ERRORS_MD.read_text().splitlines() if l.startswith("| `NO_PATH`"))
+    row = next(l for l in ERRORS_MD.read_text(encoding="utf-8").splitlines() if l.startswith("| `NO_PATH`"))
     first = row.split("|")[2]
     assert "dig_through" not in first
 
 
 def test_orchestrator_handles_failed_and_emergency():
-    text = (ROOT / "skills/oc-orchestrator/SKILL.md").read_text()
+    text = (ROOT / "skills/oc-orchestrator/SKILL.md").read_text(encoding="utf-8")
     assert "delta=EMERGENCY" in text
     assert "`FAILED` from a builder" in text and "`FAILED` from a verifier" in text
 
 
 def test_verify_uses_valid_status():
-    assert "status `FAIL`" not in (ROOT / "skills/oc-verify/SKILL.md").read_text()
+    assert "status `FAIL`" not in (ROOT / "skills/oc-verify/SKILL.md").read_text(encoding="utf-8")
 
 
 # Team contract doc stays in sync with skills/references/tool-contract.md
@@ -371,24 +371,24 @@ def team_doc_tools(text):
 
 
 def test_team_contract_doc_in_sync():
-    text = TEAM_DOC.read_text()
+    text = TEAM_DOC.read_text(encoding="utf-8")
     assert team_doc_tools(text) == contract_tools(CONTRACT)
     codes = section(text, "## Коды ошибок")
     assert {c for c in ALL_ERROR_CODES if f"| `{c}` |" in codes} == ALL_ERROR_CODES
 
 
 def test_tool_contract_points_to_team_doc():
-    assert "docs/mcp-contract.md" in CONTRACT.read_text()
+    assert "docs/mcp-contract.md" in CONTRACT.read_text(encoding="utf-8")
 
 
 def test_supply_recomputes_tree_after_taking():
     """После storage_take дерево крафта считается заново: склад мог закрыть часть шагов."""
-    text = section((ROOT / "skills/oc-supply/SKILL.md").read_text(), "## Procedure")
+    text = section((ROOT / "skills/oc-supply/SKILL.md").read_text(encoding="utf-8"), "## Procedure")
     take = text.index("`storage_take(")
     assert "`nei_craft_tree(" in text[take:], "nei_craft_tree must be called again after storage_take"
     assert "64" in text, "craft_recipe runs above 64 per grid slot must be split"
 
 
 def test_design_does_not_expect_free_space_from_status():
-    text = (ROOT / "skills/oc-design/SKILL.md").read_text()
+    text = (ROOT / "skills/oc-design/SKILL.md").read_text(encoding="utf-8")
     assert "where there is free space" not in text

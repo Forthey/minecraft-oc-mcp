@@ -1,6 +1,5 @@
 # Площадка интерактивного демо: настоящий робот, адаптер oc-mcp, агент Claude Code.
-# prepare сбрасывает регион и ставит склад. Робота ставите руками ПОСЛЕ prepare
-# (сброс региона робота удалит).
+# prepare сбрасывает регион и ставит склад. Робот (блок OpenComputers:robot) сброс переживает.
 id: play
 title: Интерактивная площадка
 goal: Interactive play area, the goal comes from the user prompt.

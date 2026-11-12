@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import subprocess
 import sys
@@ -28,7 +29,9 @@ def _run(tmp_path, script: Path, scenario: Path):
     cmd = [sys.executable, "-m", "stand.runner.script_agent", "--mcp-config", str(_mcp_config(tmp_path, scenario)),
            "--script", str(script)]
     return subprocess.run(cmd, cwd=tmp_path, capture_output=True, text=True, timeout=120,
-                          env={"PYTHONPATH": str(ROOT), "PATH": ""})
+                          # Окружение целиком: на Windows без SystemRoot не импортируется asyncio.
+                          # PATH пустой, чтобы агент-скрипт не нашёл ничего лишнего.
+                          env={**os.environ, "PYTHONPATH": str(ROOT), "PATH": ""})
 
 
 def _journal(tmp_path) -> list[str]:
@@ -41,7 +44,7 @@ def test_script_agent_memory(tmp_path):
     lines = _journal(tmp_path)
     assert all(JOURNAL_LINE_RE.match(line) for line in lines)
     assert re.search(r"phase=final .* status=DONE", lines[-1])
-    log = [json.loads(line) for line in (tmp_path / "action_log.jsonl").read_text().splitlines()]
+    log = [json.loads(line) for line in (tmp_path / "action_log.jsonl").read_text(encoding="utf-8").splitlines()]
     assert len(log) == 14 and all(e["ok"] for e in log)
     assert [e["tool"] for e in log[:4]] == ["move_to", "face", "storage_scan", "storage_take"]
     assert sum(1 for e in log if e["tool"] == "place_at") == 9

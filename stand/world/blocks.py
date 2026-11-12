@@ -7,6 +7,11 @@ Block = tuple[str, int]
 
 AIR: Block = ("minecraft:air", 0)
 
+# Блоки самого робота OpenComputers в режиме real. Робот стоит в регионе как блок, а при
+# движении на миг оставляет afterimage. Это не постройка: судья их не считает, карта-оракул
+# считает клетку свободной, сброс региона робота не трогает.
+ROBOT_BLOCKS = {"OpenComputers:robot", "OpenComputers:robotAfterimage"}
+
 # Слои плоского мира стенда (generator-settings 2;7,59x1,3x3,2;1;).
 FLOOR_Y = 63
 

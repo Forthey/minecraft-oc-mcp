@@ -11,11 +11,8 @@ from typing import Callable
 
 from stand.knowledge import KNOWLEDGE_DIR, Knowledge, normalize_id
 from stand.world.backend import WorldBackend
-from stand.world.blocks import AIR, Pos, baseline_block, parse_block
+from stand.world.blocks import AIR, ROBOT_BLOCKS, Pos, baseline_block, parse_block
 from stand.world.snapshot import Box, Snapshot
-
-# Блоки самого робота: клетка с ним для карты свободна.
-ROBOT_BLOCKS = {"OpenComputers:robot", "OpenComputers:robotAfterimage"}
 
 
 def memory_snapshot(world, region: Box) -> Snapshot:

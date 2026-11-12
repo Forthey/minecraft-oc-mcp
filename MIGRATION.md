@@ -111,8 +111,6 @@ git log -- 'pathfinding/'                 # всё по pathfinding
 
 ## Известные проблемы, перенесённые как есть
 
-- 10 тестов на Windows падают так же, как падали в `minecraft-oc-mcp-client`: чтение файлов без `encoding="utf-8"`
-  (`test_validate_skills`) и запуск агентов через subprocess (`test_script_agent`, `test_real_command`).
 - Спеки `docs/superpowers/specs/*.md`, на которые ссылаются README и docs, ни в одном репозитории не были закоммичены.
 - `adapter` подключает карту мира из `stand` (`--map stand.adapter_map:oracle`), то есть продовый путь зависит от стенда.
 - A\* реализован трижды: `adapter/pathfinding.py`, `stand/fake_mcp/pathfinding.py`, `pathfinding/java/`.

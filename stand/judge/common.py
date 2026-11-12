@@ -3,12 +3,8 @@
 from __future__ import annotations
 
 from stand.knowledge import Knowledge
-from stand.world.blocks import AIR, Block, Pos, baseline_block, format_block
+from stand.world.blocks import AIR, ROBOT_BLOCKS, Block, Pos, baseline_block, format_block
 from stand.world.snapshot import Snapshot
-
-# Блоки самого робота OpenComputers в режиме real. Робот стоит в регионе как блок, а при
-# движении на миг оставляет afterimage. Это не постройка агента, и судья их не считает.
-ROBOT_BLOCKS = {"OpenComputers:robot", "OpenComputers:robotAfterimage"}
 
 
 def extra_cells(

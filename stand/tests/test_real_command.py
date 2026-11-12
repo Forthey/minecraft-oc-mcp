@@ -14,9 +14,10 @@ ADAPTER_CMD = ["{python}", "-m", "adapter", "--oc-mcp", "{oc_mcp_dir}/bridge/ser
 def test_render_real_command_placeholders():
     cfg = replace(load_config(), robot_mcp="real", real={"command": ADAPTER_CMD}, oc_mcp_dir=Path("/x/oc-mcp"))
     cmd = render_real_command(cfg, Path("/runs/1/private/s.yaml"), Path("/runs/1/action_log.jsonl"))
-    assert cmd == [sys.executable, "-m", "adapter", "--oc-mcp", "/x/oc-mcp/bridge/server.py",
-                   "--map", "stand.adapter_map:oracle", "--map-arg", "scenario=/runs/1/private/s.yaml",
-                   "--log", "/runs/1/action_log.jsonl"]
+    # Подстановки это str(Path), на Windows с обратными слешами.
+    assert cmd == [sys.executable, "-m", "adapter", "--oc-mcp", f"{Path('/x/oc-mcp')}/bridge/server.py",
+                   "--map", "stand.adapter_map:oracle", "--map-arg", f"scenario={Path('/runs/1/private/s.yaml')}",
+                   "--log", str(Path("/runs/1/action_log.jsonl"))]
 
 
 def test_runner_uses_adapter_log_file():

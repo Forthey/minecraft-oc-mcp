@@ -37,6 +37,14 @@ def test_reset_clears_containers_before_removal(k):
     assert set(cleared) == {(95, 64, 105), (101, 64, 100)}
 
 
+def test_reset_keeps_robot(k):
+    s = load_scenario(SCENARIOS_DIR / "s01-wall" / "scenario.yaml")
+    robot = (96, 64, 105)
+    world = MemoryWorld({robot: ("OpenComputers:robot", 0), (100, 64, 100): ("minecraft:cobblestone", 0)})
+    assert reset_region(world, _snapshot_of(world, s.region), s, k) is True
+    assert world.blocks == {robot: ("OpenComputers:robot", 0)}
+
+
 def test_reset_reports_failure(k):
     s = load_scenario(SCENARIOS_DIR / "s01-wall" / "scenario.yaml")
 

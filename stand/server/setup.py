@@ -16,7 +16,7 @@ import yaml
 
 from stand.config import Config
 from stand.rcon import Rcon
-from stand.server import process
+from stand.server import navmap, process
 
 FORGE_VERSION = "1.7.10-10.13.4.1614-1.7.10"
 FORGE_INSTALLER_URL = (
@@ -223,6 +223,48 @@ def create_template(cfg: Config, force: bool = False) -> Path:
     return cfg.world_template_dir
 
 
+# Настройки OpenComputers для стенда и демо, ключ и значение в OpenComputers.cfg.
+# ignorePower: робот не разряжается. limitFlightHeight: робот без Angel/Hover летает выше 8 блоков.
+OC_SETTINGS = {"ignorePower": "true", "limitFlightHeight": "256"}
+# Internet Card по умолчанию не пускает в локальную сеть, а мост слушает 127.0.0.1.
+# Правило должно стоять до "deny private": правила проверяются сверху вниз.
+OC_ALLOW_RULE = '"allow ip:127.0.0.1"'
+
+
+def oc_config_path(cfg: Config) -> Path:
+    return cfg.server_dir / "config" / "OpenComputers.cfg"
+
+
+def patch_oc_config(text: str) -> str:
+    """OpenComputers.cfg с настройками стенда. Повторный вызов ничего не меняет."""
+    for key, value in OC_SETTINGS.items():
+        text, n = re.subn(rf"(?m)^([ \t]*{key}[ \t]*=[ \t]*)\S+[ \t]*$", rf"\g<1>{value}", text)
+        if n == 0:
+            raise ValueError(f"OpenComputers.cfg has no {key}, the OC version changed?")
+    if OC_ALLOW_RULE not in text:
+        text, n = re.subn(r'(?m)^([ \t]*)"deny private"', rf'\g<1>{OC_ALLOW_RULE},\n\g<1>"deny private"',
+                          text, count=1)
+        if n == 0:
+            raise ValueError('OpenComputers.cfg has no "deny private" in filteringRules')
+    return text
+
+
+def configure_opencomputers(cfg: Config) -> bool:
+    """Вписывает настройки стенда в OpenComputers.cfg. False, если конфига ещё нет.
+
+    Конфиг создаёт сам OpenComputers при первом запуске сервера (create_template).
+    Сервер читает его только при старте.
+    """
+    path = oc_config_path(cfg)
+    if not path.exists():
+        return False
+    text = path.read_text(encoding="utf-8")
+    patched = patch_oc_config(text)
+    if patched != text:
+        path.write_text(patched, encoding="utf-8")
+    return True
+
+
 def setup_all(cfg: Config, pin: bool = False) -> None:
     """Полная установка: Java, Forge, моды, конфиги, шаблон мира."""
     check_java(cfg)
@@ -235,3 +277,12 @@ def setup_all(cfg: Config, pin: bool = False) -> None:
     print("server files ok")
     template = create_template(cfg)
     print(f"world template ok: {template}")
+    if process.is_running(cfg):
+        print("server is running: stop it and run setup again to write the OpenComputers config and the map")
+        return
+    if configure_opencomputers(cfg):
+        print(f"opencomputers config ok: {oc_config_path(cfg)}")
+    else:
+        print(f"opencomputers config not found at {oc_config_path(cfg)}: start the server once and run setup again")
+    map_id = navmap.ensure_nav_map([cfg.world_dir, cfg.world_template_dir])
+    print(f"navigation map ok: map_{map_id} (in game: /give <nick> filled_map 1 {map_id})")
